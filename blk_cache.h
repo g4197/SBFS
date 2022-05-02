@@ -5,6 +5,8 @@
 #include "blk.h"
 
 namespace sbfs {
+class BlockDevice;
+
 class BlockCacheManager {
 public:
     BlockCacheManager(const uint64_t cache_size, BlockDevice *parent);
@@ -26,8 +28,9 @@ private:
      * this data structure can be replaced. 
      * block_id to (Block and Block status)
      */
-
     std::map<blk_id_t, std::pair<Block, BlockStatus>> cache_map_;
+    BlockDevice *parent_;
+    uint64_t cache_size_;
 };
 }
 
