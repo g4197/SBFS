@@ -10,13 +10,11 @@ namespace sbfs {
 
 class SBFileSystem {
 public:
-    static SBFileSystem create(const char *path, const uint64_t size, uint32_t total_blocks, uint32_t inode_bitmap_blocks) {
-        /* TODO */
-    }
+    /* Create a new SBFS. */
+    static SBFileSystem create(const char *path, const uint64_t size, uint32_t total_blocks, uint32_t inode_bitmap_blocks);
 
-    static SBFileSystem open(const char *path) {
-        /* TODO */
-    }
+    /* Open an existing SBFS. */
+    static SBFileSystem open(const char *path);
 
     /* get root Inode. */
     Inode root();
@@ -46,21 +44,6 @@ private:
     uint32_t inode_area_start_block_;
     uint32_t data_area_start_block_;
 };
-
-
-namespace vfs {
-extern SBFileSystem *sbfs;
-
-void sb_init(const char *path, const uint64_t size);
-
-void sb_destroy();
-
-void sb_open(const char *path, struct fuse_file_info *fi);
-
-/* TODO: more interfaces */
-
-}; // namespace vfs
-
 };
 
 #endif

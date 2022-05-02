@@ -66,6 +66,13 @@ struct DiskInode {
     uint32_t create_time;
     uint32_t modify_time;
 
+    uint16_t uid; // Owner user id (may be used in ext tasks)
+    uint16_t gid; // Owner group id (may be used in ext tasks)
+    uint16_t link_cnt; // Hard link count (may be used in ext tasks)
+    
+    /* used in chmod, also contains file type (no need to implement now). */
+    uint16_t mode; 
+
     blk_id_t direct[kInodeDirectCnt];
     blk_id_t indirect1;
     blk_id_t indirect2;

@@ -19,15 +19,8 @@ struct Position {
 
 struct Inode {
     /* Place of DiskInode */
-    DiskInodeType type;
     Position pos;
     SBFileSystem *fs;
-    /* 
-     * Find inode with "name" in current dir.
-     * Only support directory type.
-     * return kFail if not found.
-     */
-    int find(const char *name, Inode *inode);
     /*
      * Read "size" bytes from offset to "buf".
      * Metadata (access time etc.) should be updated.
@@ -48,8 +41,29 @@ struct Inode {
      * Write diskinode of this inode from buf.
      */
     int write_inode(const DiskInode *buf);
-
-    /* TODO: mkdir, and so on */
+    /*
+     * Create a file / directory with "name" in current dir.
+     * Only support directory type.
+     * Inode saves the inode created.
+     */
+    int create(const char *name, Inode *inode);
+    /* 
+     * Find inode with "name" in current dir.
+     * Only support directory type.
+     * Inode saves the inode found.
+     * return kFail if not found.
+     */
+    int find(const char *name, Inode *inode);
+    /*
+     * Resize current inode to "new_size".
+     * Only support file type.
+     */
+    int resize(uint32_t new_size);
+    /*
+     * Remove a file / directory with "name" in current dir.
+     * Only support directory type.
+     */
+    int remove(const char *name);
 };
 }
 
