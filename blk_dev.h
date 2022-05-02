@@ -8,7 +8,7 @@ namespace sbfs {
 class BlockDevice {
 public:
     /* Path is the simulated "disk file" path, size is its size. */
-    BlockDevice(const char *path, const uint64_t size) : blk_cache_mgr_(kBlockCacheSize, this) {};
+    BlockDevice(const char *path, const uint64_t size);
     ~BlockDevice();
     /* 
      * Read block_id to buf,
@@ -32,9 +32,13 @@ public:
      * write it to disk.
      */
     int sync(blk_id_t block_id);
+
+    int write_to_disk(blk_id_t block_id, const Block *buf);
 private:
-    /* TODO: some data structures */
     BlockCacheManager blk_cache_mgr_;
+    int fd_;
+    uint32_t num_data_blocks_;
+    uint32_t num_log_blocks_; /* TODO: reserve log blocks */
 };
 };
 
