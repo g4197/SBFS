@@ -1,7 +1,10 @@
 #include "vfs.h"
-#include "inode.h"
-#include <string>
+
 #include <glog/logging.h>
+
+#include <string>
+
+#include "inode.h"
 
 namespace sbfs {
 namespace vfs {
@@ -54,8 +57,8 @@ int sb_mkdir(const char *path, mode_t mode) {
     return 0;
 }
 
-int sb_readdir(const char *path, void *buf, fuse_fill_dir_t filler, 
-               off_t offset, fuse_file_info *fi, fuse_readdir_flags flags) {
+int sb_readdir(
+    const char *path, void *buf, fuse_fill_dir_t filler, off_t offset, fuse_file_info *fi, fuse_readdir_flags flags) {
     DLOG(INFO) << "readdir " << path << " with offset " << offset;
     /* resolve path */
     string dir = string(path);
@@ -65,19 +68,22 @@ int sb_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
 
     auto inode_ret = inode.read_inode(&disk_inode);
     rt_assert(inode_ret != kFail, "read inode failed");
-    
+
     if (disk_inode.type != DiskInodeType::kDirectory) {
         return -ENOTDIR;
     }
 
+    uint32_t tot_blocks = disk_inode.total_blocks(disk_inode.size);
     DirBlock dir_block;
-    auto dir_ret = inode.read_data(0, (uint8_t *)&dir_block, sizeof(DirBlock));
-    rt_assert(dir_ret != kFail, "read dir block failed");
-    
-    for (size_t i = 0; i < kDirEntries; i++) {
-        DirEntry &entry = dir_block.entries[i];
-        if (entry.isValid()) {
-            filler(buf, entry.name, nullptr, 0, (fuse_fill_dir_flags)0);
+    for (uint32_t block_id = 0; block_id < tot_blocks; ++block_id) {
+        auto dir_ret = inode.read_data(block_id * sizeof(DirBlock), (uint8_t *)&dir_block, sizeof(DirBlock));
+        rt_assert(dir_ret != kFail, "read dir block failed");
+
+        for (size_t i = 0; i < kDirEntries; ++i) {
+            DirEntry &entry = dir_block.entries[i];
+            if (entry.isValid()) {
+                filler(buf, entry.name, nullptr, 0, (fuse_fill_dir_flags)0);
+            }
         }
     }
     return 0;
@@ -107,5 +113,5 @@ int sb_statfs(const char *path, struct statvfs *stbuf);
 
 int sb_fsync(const char *path, int datasync, struct fuse_file_info *fi);
 
-};
-};
+};  // namespace vfs
+};  // namespace sbfs
