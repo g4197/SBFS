@@ -74,10 +74,11 @@ int sb_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
     auto dir_ret = inode.read_data(0, (uint8_t *)&dir_block, sizeof(DirBlock));
     rt_assert(dir_ret != kFail, "read dir block failed");
     
-    size_t num_items = disk_inode.size / sizeof(DirEntry);
-    for (size_t i = 0; i < num_items; i++) {
+    for (size_t i = 0; i < kDirEntries; i++) {
         DirEntry &entry = dir_block.entries[i];
-        filler(buf, entry.name, nullptr, 0, (fuse_fill_dir_flags)0);
+        if (entry.isValid()) {
+            filler(buf, entry.name, nullptr, 0, (fuse_fill_dir_flags)0);
+        }
     }
     return 0;
 }

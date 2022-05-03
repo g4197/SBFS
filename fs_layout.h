@@ -152,11 +152,14 @@ namespace sbfs
             name[0] = '\0';
             inode = 0;
         }
-        DirEntry(const char *name, uint32_t inode)
-        {
+        DirEntry(const char *name, uint32_t inode) {
             memset(this, 0, sizeof(DirEntry));
             strncpy(this->name, name, kMaxDirNameLength);
             this->inode = inode;
+        }
+        inline bool isValid() {
+            // Is inode == 0 reasonable? in most cases, inode 0 is used for root.
+            return name[0] != '\0';
         }
     };
 

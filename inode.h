@@ -2,12 +2,14 @@
 #define INODE_H_
 
 #include "config.h"
+#include "fs_layout.h"
 #include "blk_dev.h"
 
 namespace sbfs {
 /* Directory block stored in data area */
+constexpr uint64_t kDirEntries = kBlockSize / sizeof(DirEntry);
 struct DirBlock {
-    DirEntry entries[kBlockSize / sizeof(DirEntry)];
+    DirEntry entries[kDirEntries];
 };
 
 class SBFileSystem;
