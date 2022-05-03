@@ -1,23 +1,18 @@
-#define FUSE_USE_VERSION 31
-
 #include <fuse3/fuse.h>
 #include <glog/logging.h>
+
 #include "vfs.h"
 
 using namespace sbfs::vfs;
 
 static struct options {
     char *disk_path;
-	int open;
+    int open;
 } opt;
 
-#define OPTION(t, p)                           \
+#define OPTION(t, p) \
     { t, offsetof(struct options, p), 1 }
-static const struct fuse_opt option_spec[] = {
-    OPTION("--disk_path", disk_path),
-	OPTION("--open", open),
-	FUSE_OPT_END
-};
+static const struct fuse_opt option_spec[] = {OPTION("--disk_path", disk_path), OPTION("--open", open), FUSE_OPT_END};
 
 int main(int argc, char **argv) {
     /* Init glog */

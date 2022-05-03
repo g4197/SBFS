@@ -1,9 +1,9 @@
 #ifndef INODE_H_
 #define INODE_H_
 
+#include "blk_dev.h"
 #include "config.h"
 #include "fs_layout.h"
-#include "blk_dev.h"
 
 namespace sbfs {
 /* Directory block stored in data area */
@@ -57,7 +57,7 @@ struct Inode {
      * 6. update parent directory's inode (size, access time etc.)
      */
     int create(const char *name, const DiskInode *disk_inode, Inode *inode);
-    /* 
+    /*
      * Find inode with "name" in current dir.
      * Only support directory type.
      * Inode saves the inode found.
@@ -74,7 +74,17 @@ struct Inode {
      * Only support directory type.
      */
     int remove(const char *name);
-};
-}
 
-#endif // INODE_H_
+    /* Judge if the Inode item is valid. */
+    inline bool isValid() {
+        return pos.block_id != 0;
+    }
+
+    inline bool operator<(const Inode &other) const {
+        return (pos.block_id < other.pos.block_id) ||
+               (pos.block_id == other.pos.block_id && pos.block_offset < other.pos.block_offset);
+    }
+};
+}  // namespace sbfs
+
+#endif  // INODE_H_
