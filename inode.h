@@ -51,7 +51,8 @@ struct Inode {
      * 2. allocate block for new directory.
      * 3. write directory data. (create . and ..)
      * 4. write inode of new file / directory.
-     * 5. update parent directory's inode.
+     * 5. update parent directory's data block, add new entry.
+     * 6. update parent directory's inode (size, access time etc.)
      */
     int create(const char *name, const DiskInode *disk_inode, Inode *inode);
     /* 

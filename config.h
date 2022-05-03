@@ -19,12 +19,16 @@ inline constexpr uint64_t GB(uint64_t x) {
     return x * 1024 * 1024 * 1024;
 }
 
+#ifndef NDEBUG
 inline void rt_assert(bool cond, const char *msg) {
     if (!cond) {
         DLOG(ERROR) << msg;
-        exit(1);
+        // exit(1); Don't exit for I don't know what FUSE will do after that.
     }
 }
+#else
+#define rt_assert(cond, msg) do { } while (0)
+#endif
 
 constexpr uint64_t kBlockSize = 512; // block is 512B
 constexpr uint64_t kBlockCacheSize = MB(32);

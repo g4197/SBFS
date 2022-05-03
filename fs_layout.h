@@ -148,6 +148,10 @@ namespace sbfs
     {
         char name[kMaxDirNameLength + 1];
         uint32_t inode;
+        DirEntry() {
+            name[0] = '\0';
+            inode = 0;
+        }
         DirEntry(const char *name, uint32_t inode)
         {
             memset(this, 0, sizeof(DirEntry));

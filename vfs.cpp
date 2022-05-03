@@ -49,12 +49,38 @@ int sb_mkdir(const char *path, mode_t mode) {
     DiskInode disk_inode(DiskInodeType::kDirectory);
     disk_inode.mode = mode & 0777;
 
-    rt_assert(parent_inode.create(child.c_str(), &disk_inode, &child_inode) != kFail, 
-              "mkdir failed");
+    auto ret = parent_inode.create(child.c_str(), &disk_inode, &child_inode);
+    rt_assert(ret != kFail, "mkdir failed");
+    return 0;
 }
 
 int sb_readdir(const char *path, void *buf, fuse_fill_dir_t filler, 
-               off_t offset, fuse_file_info *fi, fuse_readdir_flags flags);
+               off_t offset, fuse_file_info *fi, fuse_readdir_flags flags) {
+    DLOG(INFO) << "readdir " << path << " with offset " << offset;
+    /* resolve path */
+    string dir = string(path);
+    Inode inode = path_resolver->resolve(dir);
+
+    DiskInode disk_inode(DiskInodeType::kDirectory);
+
+    auto inode_ret = inode.read_inode(&disk_inode);
+    rt_assert(inode_ret != kFail, "read inode failed");
+    
+    if (disk_inode.type != DiskInodeType::kDirectory) {
+        return -ENOTDIR;
+    }
+
+    DirBlock dir_block;
+    auto dir_ret = inode.read_data(0, (uint8_t *)&dir_block, sizeof(DirBlock));
+    rt_assert(dir_ret != kFail, "read dir block failed");
+    
+    size_t num_items = disk_inode.size / sizeof(DirEntry);
+    for (size_t i = 0; i < num_items; i++) {
+        DirEntry &entry = dir_block.entries[i];
+        filler(buf, entry.name, nullptr, 0, (fuse_fill_dir_flags)0);
+    }
+    return 0;
+}
 
 int sb_getattr(const char *path, struct stat *stbuf, fuse_file_info *fi);
 

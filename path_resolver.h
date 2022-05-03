@@ -9,7 +9,7 @@ class PathResolver {
 public:
     PathResolver(SBFileSystem *fs, uint64_t path_cache_size);
     ~PathResolver();
-
+    /* Attention: end of path maybe / or not /. */
     Inode resolve(const std::string &path);
 private:
     SBFileSystem *fs_;
