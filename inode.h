@@ -43,10 +43,17 @@ struct Inode {
     int write_inode(const DiskInode *buf);
     /*
      * Create a file / directory with "name" in current dir.
+     * its DiskInode info is in disk_inode.
      * Only support directory type.
-     * Inode saves the inode created.
+     * input: name, disk_inode
+     * output: inode, 0 or 1
+     * 1. allocate inode for new file / directory.
+     * 2. allocate block for new directory.
+     * 3. write directory data. (create . and ..)
+     * 4. write inode of new file / directory.
+     * 5. update parent directory's inode.
      */
-    int create(const char *name, Inode *inode);
+    int create(const char *name, const DiskInode *disk_inode, Inode *inode);
     /* 
      * Find inode with "name" in current dir.
      * Only support directory type.

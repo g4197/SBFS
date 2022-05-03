@@ -10,7 +10,7 @@ public:
     PathResolver(SBFileSystem *fs, uint64_t path_cache_size);
     ~PathResolver();
 
-    Inode resolve(const char *path);
+    Inode resolve(const std::string &path);
 private:
     SBFileSystem *fs_;
     std::map<std::string, Inode> path_cache_;
