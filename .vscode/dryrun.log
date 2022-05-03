@@ -1,0 +1,6 @@
+make --dry-run --always-make --keep-going --print-directory
+make: Entering directory `/Users/lbr/Desktop/code/SBFS'
+c++    -c -o main.o main.cpp
+g++ *.cpp -o main -lglog
+make: Leaving directory `/Users/lbr/Desktop/code/SBFS'
+ 
