@@ -9,10 +9,10 @@ DiskInode::DiskInode(DiskInodeType type_)
     // TODO update trivial metadata
 }
 
-constexpr INODE_DIRECT_COUNT = kInodeDirectCnt;
-constexpr INODE_INDIRECT_COUNT = kBlockSize / sizeof(uint32_t);
-constexpr MAX_BLOCK_SIZE = INODE_DIRECT_COUNT + INODE_INDIRECT_COUNT + INODE_INDIRECT_COUNT * INODE_INDIRECT_COUNT;
-constexpr MAX_FILE_SIZE = MAX_BLOCK_SIZE * kBlockSize;
+constexpr int INODE_DIRECT_COUNT = kInodeDirectCnt;
+constexpr int INODE_INDIRECT_COUNT = kBlockSize / sizeof(uint32_t);
+constexpr int MAX_BLOCK_SIZE = INODE_DIRECT_COUNT + INODE_INDIRECT_COUNT + INODE_INDIRECT_COUNT * INODE_INDIRECT_COUNT;
+constexpr int MAX_FILE_SIZE = MAX_BLOCK_SIZE * kBlockSize;
 
 blk_id_t DiskInode::block_id(uint32_t inner_id, BlockDevice *dev)
 {
@@ -32,30 +32,35 @@ blk_id_t DiskInode::block_id(uint32_t inner_id, BlockDevice *dev)
         int idx = inner_id - INODE_DIRECT_COUNT;
         if (dev->read(indirect1, buf) != kSuccess)
         {
-            DLOG(ERROR) << "read indirect1 block " << indirect << " failed";
+            DLOG(ERROR) << "read indirect1 block " << indirect1 << " failed";
             return kFail;
         }
-        auto p = static_cast<uint32_t *>(buf->data);
+        auto p = (uint32_t *)(buf->data);
         auto ret = p[idx];
         delete buf;
         return ret;
     }
     else
     {
-        int idx = inner_id - INODE_DIRECT_COUNT - INODE_INDIRECT_COUNT int blk = idx / INODE_INDIRECT_COUNT;
+        int idx = inner_id - INODE_DIRECT_COUNT - INODE_INDIRECT_COUNT;
+        int blk = idx / INODE_INDIRECT_COUNT;
         if (dev->read(indirect2, buf) != kSuccess)
         {
             DLOG(ERROR) << "read indirect2 block " << indirect2 << " failed";
             return kFail;
         }
-        auto blk_id = static_cast<uint32_t *>(buf->data)[blk];
+        auto *data = (uint32_t *)buf->data;
+        auto blk_id = data[blk];
         if (dev->read(blk_id, buf) != kSuccess)
         {
             DLOG(ERROR) << "read second level of indirect2 block " << blk_id << " failed";
             return kFail;
         }
+        data = (uint32_t *)buf->data;
+        auto ret_id = data[idx % INODE_INDIRECT_COUNT];
         delete buf;
-        return static_cast<uint32_t *>(buf->data)[idx % INODE_INDIRECT_COUNT];
+
+        return ret_id;
     }
     DLOG(ERROR) << "should never reach here";
     return kFail;
@@ -66,7 +71,7 @@ static uint32_t data_blocks(uint32_t size)
     return (size + kBlockSize - 1) / kBlockSize;
 }
 
-static uint32_t DiskInode::total_blocks(uint32_t size)
+uint32_t DiskInode::total_blocks(uint32_t size)
 {
     rt_assert(size <= MAX_FILE_SIZE, "max file size exceeded");
     auto data = data_blocks(size);
@@ -84,7 +89,7 @@ static uint32_t DiskInode::total_blocks(uint32_t size)
 }
 
 // todo: write back all at once to reduce overhead
-int DiskInode::increase(int old_blocks, int old_data_blocks, int new_blocks, int new_data_blocks, BlockDevice *dev)
+int DiskInode::increase(int old_blocks, int old_data_blocks, int new_blocks, int new_data_blocks, BlockDevice *dev, Bitmap *data_bitmap)
 {
     int new_direct_blocks = new_blocks - old_blocks - (new_data_blocks - old_data_blocks);
     rt_assert(new_direct_blocks >= 0, "new direct blocks should be non-negative");
@@ -94,7 +99,7 @@ int DiskInode::increase(int old_blocks, int old_data_blocks, int new_blocks, int
     // step one, increase direct blocks
     for (int i = old_data_blocks; i < min(new_data_blocks, INODE_DIRECT_COUNT); i++)
     {
-        blk_id_t new_blk = data_bitmap->alloc();
+        blk_id_t new_blk = data_bitmap->alloc(dev);
         if (new_blk == kFail)
         {
             DLOG(ERROR) << "alloc data bitmap failed at increase 1";
@@ -106,7 +111,7 @@ int DiskInode::increase(int old_blocks, int old_data_blocks, int new_blocks, int
     // step two, increase indirect1 blocks
     if (!indirect1)
     {
-        indirect1 = data_bitmap->alloc();
+        indirect1 = data_bitmap->alloc(dev);
         if (indirect1 == kFail)
         {
             DLOG(ERROR) << "alloc indirect1 bitmap failed at increase 2";
@@ -119,10 +124,10 @@ int DiskInode::increase(int old_blocks, int old_data_blocks, int new_blocks, int
         DLOG(ERROR) << "read indirect1 block " << indirect1 << " failed at increase 2";
         return kFail;
     }
-    auto p = static_cast<uint32_t *>(ind1->data);
+    auto p = (uint32_t *)(ind1->data);
     for (int i = max(old_data_blocks, INODE_DIRECT_COUNT); i < min(new_data_blocks, INODE_DIRECT_COUNT + INODE_INDIRECT_COUNT); i++)
     {
-        blk_id_t new_blk = data_bitmap->alloc();
+        blk_id_t new_blk = data_bitmap->alloc(dev);
         if (new_blk == kFail)
         {
             DLOG(ERROR) << "alloc data bitmap failed at increase 2";
@@ -136,7 +141,7 @@ int DiskInode::increase(int old_blocks, int old_data_blocks, int new_blocks, int
 
     if (!indirect2)
     {
-        indirect2 = data_bitmap->alloc();
+        indirect2 = data_bitmap->alloc(dev);
         if (indirect2 == kFail)
         {
             DLOG(ERROR) << "alloc indirect2 bitmap failed at increase 3";
@@ -149,7 +154,7 @@ int DiskInode::increase(int old_blocks, int old_data_blocks, int new_blocks, int
         DLOG(ERROR) << "read indirect2 block " << indirect2 << " failed at increase 3";
         return kFail;
     }
-    p = static_cast<uint32_t *>(ind2->data);
+    p = (uint32_t *)(ind2->data);
     int old_idx_limit = old_data_blocks - INODE_DIRECT_COUNT - INODE_INDIRECT_COUNT;
     int blk_limit = old_idx_limit / INODE_INDIRECT_COUNT;
     for (int i = max(old_data_blocks, INODE_DIRECT_COUNT + INODE_INDIRECT_COUNT); i < new_data_blocks; i++)
@@ -159,7 +164,7 @@ int DiskInode::increase(int old_blocks, int old_data_blocks, int new_blocks, int
         // at indirect2, we have to allocate a new indirect1 block that is not previously allocated
         if (blk > blk_limit)
         {
-            blk_id_t new_ind1 = data_bitmap->alloc();
+            blk_id_t new_ind1 = data_bitmap->alloc(dev);
             if (new_ind1 == kFail)
             {
                 DLOG(ERROR) << "alloc indirect1 bitmap failed at increase 3";
@@ -181,14 +186,14 @@ int DiskInode::increase(int old_blocks, int old_data_blocks, int new_blocks, int
             return kFail;
         }
 
-        blk_id_t new_blk = data_bitmap->alloc();
+        blk_id_t new_blk = data_bitmap->alloc(dev);
         if (new_blk == kFail)
         {
             DLOG(ERROR) << "alloc data bitmap failed at increase 3";
             return kFail;
         }
 
-        auto p2 = static_cast<uint32_t *>(ind21->data);
+        auto p2 = (uint32_t *)(ind21->data);
         p2[j % INODE_INDIRECT_COUNT] = new_blk;
         if (dev->write(p[blk], ind21) != kSuccess)
         {
@@ -196,9 +201,10 @@ int DiskInode::increase(int old_blocks, int old_data_blocks, int new_blocks, int
             return kFail;
         }
     }
+    return kSuccess;
 }
 
-int DiskInode::decrease(int old_blocks, int old_data_blocks, int new_blocks, int new_data_blocks, BlockDevice *dev)
+int DiskInode::decrease(int old_blocks, int old_data_blocks, int new_blocks, int new_data_blocks, BlockDevice *dev, Bitmap *data_bitmap)
 {
     int new_direct_blocks = new_blocks - old_blocks - (new_data_blocks - old_data_blocks);
     rt_assert(new_direct_blocks <= 0, "new direct blocks should be non-positive");
@@ -208,7 +214,7 @@ int DiskInode::decrease(int old_blocks, int old_data_blocks, int new_blocks, int
     // step one, decrease direct blocks
     for (int i = new_data_blocks; i < min(old_data_blocks, INODE_DIRECT_COUNT); i++)
     {
-        auto ret = data_bitmap->free(direct[i]);
+        auto ret = data_bitmap->free(direct[i], dev);
         direct[i] = -1; // set to -1 is unnecessary, but for better debugging
                         // since this will make sbfs crash faster
         if (ret != kSuccess)
@@ -227,10 +233,10 @@ int DiskInode::decrease(int old_blocks, int old_data_blocks, int new_blocks, int
             DLOG(ERROR) << "read indirect1 block " << indirect1 << " failed at decrease 2";
             return kFail;
         }
-        auto p = static_cast<uint32_t *>(ind1->data);
+        auto p = (uint32_t *)(ind1->data);
         for (int i = max(new_data_blocks, INODE_DIRECT_COUNT); i < min(old_data_blocks, INODE_DIRECT_COUNT + INODE_INDIRECT_COUNT); i++)
         {
-            auto ret = data_bitmap->free(p[i - INODE_DIRECT_COUNT]);
+            auto ret = data_bitmap->free(p[i - INODE_DIRECT_COUNT], dev);
             if (ret != kSuccess)
             {
                 DLOG(ERROR) << "free data bitmap failed at decrease 2";
@@ -255,7 +261,7 @@ int DiskInode::decrease(int old_blocks, int old_data_blocks, int new_blocks, int
             DLOG(ERROR) << "read indirect2 block " << indirect2 << " failed at decrease 3";
             return kFail;
         }
-        auto p = static_cast<uint32_t *>(ind2->data);
+        auto p = (uint32_t *)(ind2->data);
         int old_idx_limit = old_data_blocks - INODE_DIRECT_COUNT - INODE_INDIRECT_COUNT;
         int blk_limit = old_idx_limit / INODE_INDIRECT_COUNT;
 
@@ -275,14 +281,14 @@ int DiskInode::decrease(int old_blocks, int old_data_blocks, int new_blocks, int
                     DLOG(ERROR) << "read indirect1 block " << p[blk] << " failed at decrease 3";
                     return kFail;
                 }
-                auto p2 = static_cast<uint32_t *>(ind1->data);
+                auto p2 = (uint32_t *)(ind1->data);
                 for (int k = 0; k < INODE_INDIRECT_COUNT; k++)
                 {
                     if (k + i >= old_data_blocks)
                         break;
                     if ((k + j) / INODE_INDIRECT_COUNT != blk) // when j is not a multiple of INODE_INDIRECT_COUNT
                         break;
-                    auto ret = data_bitmap->free(p2[k]);
+                    auto ret = data_bitmap->free(p2[k], dev);
                     if (ret != kSuccess)
                     {
                         DLOG(ERROR) << "free data bitmap failed at decrease 3";
@@ -298,23 +304,25 @@ int DiskInode::decrease(int old_blocks, int old_data_blocks, int new_blocks, int
             }
         }
     }
-    int DiskInode::resize(uint32_t new_size, Bitmap * data_bitmap, BlockDevice * dev)
+    return kSuccess;
+}
+
+int DiskInode::resize(uint32_t new_size, Bitmap *data_bitmap, BlockDevice *dev)
+{
+    auto old_size = size;
+    size = new_size;
+    auto old_data_blocks = data_blocks(old_size);
+    auto new_data_blocks = data_blocks(size);
+    auto old_blocks = total_blocks(old_size);
+    auto new_blocks = total_blocks(size);
+    if (old_blocks == new_blocks)
+        return kSuccess;
+    if (old_blocks > new_blocks)
     {
-        auto old_size = size;
-        size = new_size;
-        auto old_data_blocks = data_blocks(old_size);
-        auto new_data_blocks = data_blocks(size);
-        auto old_blocks = blocks(old_size);
-        auto new_blocks = blocks(size);
-        if (old_blocks == new_blocks)
-            return kSuccess;
-        if (old_blocks > new_blocks)
-        {
-            return decrease(old_blocks, old_data_blocks, new_blocks, new_data_blocks, dev);
-        }
-        else
-        {
-            return increase(old_blocks, old_data_blocks, new_blocks, new_data_blocks, dev);
-        }
+        return decrease(old_blocks, old_data_blocks, new_blocks, new_data_blocks, dev, data_bitmap);
+    }
+    else
+    {
+        return increase(old_blocks, old_data_blocks, new_blocks, new_data_blocks, dev, data_bitmap);
     }
 }

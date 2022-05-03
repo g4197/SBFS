@@ -112,7 +112,7 @@ namespace sbfs
         blk_id_t block_id(uint32_t inner_id, BlockDevice *dev);
 
         /* calculate how many blocks needed by a file/dir with "size" */
-        static uint32_t total_blocks(uint32_t size);
+        uint32_t total_blocks(uint32_t size);
 
         /*
          * This interface is different from rCore's, for it should handle both increase and decrease,
@@ -138,8 +138,8 @@ namespace sbfs
         int write_data(uint32_t offset, const uint8_t *buf, uint32_t size, BlockDevice *dev);
 
     private:
-        int increase(int, int, int, int, BlockDevice *);
-        int decrease(int, int, int, int, BlockDevice *);
+        int increase(int, int, int, int, BlockDevice *, Bitmap *);
+        int decrease(int, int, int, int, BlockDevice *, Bitmap *);
     };
 
     static_assert(sizeof(DiskInode) <= kBlockSize, "DiskInode size error");

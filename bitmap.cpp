@@ -45,7 +45,7 @@ blk_id_t Bitmap::alloc(BlockDevice *dev)
             return kFail;
         }
         auto sz = sizeof(uint64_t);
-        auto p = static_cast<uint64_t *>(buf->data);
+        auto p = (uint64_t *)(buf->data);
         for (int j = 0; j < kBlockSize / sz; j++)
         {
             int k = nlz(p[j]);
@@ -65,7 +65,7 @@ blk_id_t Bitmap::alloc(BlockDevice *dev)
     return kFail;
 }
 
-int Bitmap::free(BlockDevice *dev, blk_id_t block_id)
+int Bitmap::free(blk_id_t block_id, BlockDevice *dev)
 {
     block_id -= data_segment_offset;
     auto buf = new Block;
@@ -79,7 +79,7 @@ int Bitmap::free(BlockDevice *dev, blk_id_t block_id)
         return kFail;
     }
     auto sz = sizeof(uint64_t);
-    auto p = static_cast<uint64_t *>(buf->data);
+    auto p = (uint64_t *)(buf->data);
     p[slot_id_in_bitmap / sz] &= ~(1 << (slot_id_in_bitmap % sz));
     if (dev->write(start_block_id + block_id_in_bitmap, buf) != kSuccess)
     {
