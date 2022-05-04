@@ -1,17 +1,21 @@
 #ifndef FS_H_
 #define FS_H_
 
+#include <fuse3/fuse.h>
+
 #include "config.h"
 #include "fs_layout.h"
 #include "inode.h"
-#include <fuse3/fuse.h>
 
 namespace sbfs {
 
 class SBFileSystem {
 public:
     /* Create a new SBFS. */
-    static SBFileSystem create(const char *path, const uint64_t size, uint32_t total_blocks, uint32_t inode_bitmap_blocks);
+    static SBFileSystem create(const char *path,
+                               const uint64_t size,
+                               uint32_t total_blocks,
+                               uint32_t inode_bitmap_blocks);
 
     /* Open an existing SBFS. */
     static SBFileSystem open(const char *path);
@@ -36,14 +40,14 @@ public:
 
     /* Deallocate a data block. */
     int free_data(uint32_t block_id);
-    
+
 private:
     BlockDevice *device_;
     Bitmap *inode_bitmap_; /* Bitmap for inodes, attention: inode size may be < kBlockSize. */
-    Bitmap *data_bitmap_; /* Bitmap for data, attention: data block size is kBlockSize. */
+    Bitmap *data_bitmap_;  /* Bitmap for data, attention: data block size is kBlockSize. */
     uint32_t inode_area_start_block_;
     uint32_t data_area_start_block_;
 };
-};
+};  // namespace sbfs
 
 #endif

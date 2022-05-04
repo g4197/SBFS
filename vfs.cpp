@@ -10,8 +10,7 @@ namespace sbfs {
 namespace vfs {
 SBFileSystem *sbfs;
 PathResolver *path_resolver;
-/* File handler -> Inode */
-std::map<uint64_t, Inode> fd_manager;
+FDManager *fd_manager;
 
 using std::string;
 
@@ -47,7 +46,9 @@ int sb_mkdir(const char *path, mode_t mode) {
     string dir = string(path), parent, child;
     splitFromLastSlash(dir, parent, child);
     Inode parent_inode = path_resolver->resolve(parent), child_inode;
-
+    if (!parent_inode.isValid()) {
+        return -ENOENT;
+    }
     /* write information */
     DiskInode disk_inode(DiskInodeType::kDirectory);
     disk_inode.mode = mode & 0777;
@@ -63,7 +64,9 @@ int sb_readdir(
     /* resolve path */
     string dir = string(path);
     Inode inode = path_resolver->resolve(dir);
-
+    if (!inode.isValid()) {
+        return -ENOENT;
+    }
     DiskInode disk_inode(DiskInodeType::kDirectory);
 
     auto inode_ret = inode.read_inode(&disk_inode);
@@ -73,6 +76,7 @@ int sb_readdir(
         return -ENOTDIR;
     }
 
+    /* Read all blocks and list each of them. */
     uint32_t tot_blocks = disk_inode.total_blocks(disk_inode.size);
     DirBlock dir_block;
     for (uint32_t block_id = 0; block_id < tot_blocks; ++block_id) {
@@ -89,17 +93,147 @@ int sb_readdir(
     return 0;
 }
 
-int sb_getattr(const char *path, struct stat *stbuf, fuse_file_info *fi);
+int sb_getattr(const char *path, struct stat *stbuf, fuse_file_info *fi) {
+    DLOG(INFO) << "getattr " << path << " with fh " << fi->fh;
+    Inode inode;
+    if (!fi->fh || !fd_manager->get(fi->fh, &inode)) {
+        /* not open, resolve path. */
+        inode = path_resolver->resolve(string(path));
+    }
+    if (!inode.isValid()) {
+        return -ENOENT;
+    }
+    /* read inode */
+    DiskInode disk_inode(DiskInodeType::kDirectory);
+    auto inode_ret = inode.read_inode(&disk_inode);
+    rt_assert(inode_ret != kFail, "read inode failed");
 
-int sb_rmdir(const char *path);
+    /* fill stats */
+    stbuf->st_atime = disk_inode.access_time;
+    stbuf->st_mtime = disk_inode.modify_time;
+    stbuf->st_ctime = disk_inode.create_time;
+    stbuf->st_size = disk_inode.size;
+    stbuf->st_mode = disk_inode.mode;
+    stbuf->st_nlink = disk_inode.link_cnt;
+    stbuf->st_uid = disk_inode.uid;
+    stbuf->st_gid = disk_inode.gid;
+    stbuf->st_blocks = disk_inode.total_blocks(disk_inode.size);
+    stbuf->st_blksize = kBlockSize;
+    return 0;
+}
 
-int sb_create(const char *path, mode_t mode, struct fuse_file_info *fi);
+int sb_rmdir(const char *path) {
+    DLOG(INFO) << "rmdir " << path;
+    /* resolve path */
+    string dir = string(path), parent, child;
+    splitFromLastSlash(dir, parent, child);
+    Inode parent_inode = path_resolver->resolve(parent), child_inode;
+    if (!parent_inode.isValid()) {
+        return -ENOENT;
+    }
+    int find_ret = parent_inode.find(child.c_str(), &child_inode);
+    /* TODO: not a directory */
+    if (find_ret == kFail) {
+        return -ENOENT;
+    }
 
-int sb_unlink(const char *path);
+    DiskInode disk_inode(DiskInodeType::kDirectory);
+    auto inode_ret = child_inode.read_inode(&disk_inode);
+    rt_assert(inode_ret != kFail, "read inode failed");
+    if (disk_inode.type != DiskInodeType::kDirectory) {
+        return -ENOTDIR;
+    }
+    if (disk_inode.size != 0) {
+        return -ENOTEMPTY;
+    }
 
-int sb_rename(const char *oldpath, const char *newpath, unsigned int flags);
+    /* It's an empty dir, delete it. */
+    parent_inode.remove(child.c_str());
+    return 0;
+}
 
-int sb_open(const char *path, struct fuse_file_info *fi);
+int sb_create(const char *path, mode_t mode, struct fuse_file_info *fi) {
+    DLOG(INFO) << "create " << path << " with mode " << mode;
+    /* resolve path and create inode */
+    string dir = string(path), parent, child;
+    splitFromLastSlash(dir, parent, child);
+    Inode parent_inode = path_resolver->resolve(parent), child_inode;
+    if (!parent_inode.isValid()) {
+        return -ENOENT;
+    }
+    /* write information */
+    DiskInode disk_inode(DiskInodeType::kFile);
+    disk_inode.mode = mode & 0777;
+    /* TODO: parent not a directory, file exists... */
+    parent_inode.create(child.c_str(), &disk_inode, &child_inode);
+    return 0;
+}
+
+int sb_unlink(const char *path) {
+    DLOG(INFO) << "unlink " << path;
+    /* resolve path */
+    string dir = string(path), parent, child;
+    splitFromLastSlash(dir, parent, child);
+    Inode parent_inode = path_resolver->resolve(parent), child_inode;
+    if (!parent_inode.isValid()) {
+        return -ENOENT;
+    }
+    int find_ret = parent_inode.find(child.c_str(), &child_inode);
+    /* TODO: Not a directory... */
+    if (find_ret == kFail) {
+        return -ENOENT;
+    }
+
+    /* Remove the file. */
+    parent_inode.remove(child.c_str());
+    return 0;
+}
+
+int sb_rename(const char *oldpath, const char *newpath, unsigned int flags) {
+    DLOG(INFO) << "rename " << oldpath << " to " << newpath;
+    /* resolve path */
+    string old_dir = string(oldpath), old_parent, old_child;
+    splitFromLastSlash(old_dir, old_parent, old_child);
+    Inode old_parent_inode = path_resolver->resolve(old_parent), old_child_inode;
+    if (!old_parent_inode.isValid()) {
+        return -ENOENT;
+    }
+
+    string new_dir = string(newpath), new_parent, new_child;
+    splitFromLastSlash(new_dir, new_parent, new_child);
+    Inode new_parent_inode = path_resolver->resolve(new_parent), new_child_inode;
+
+    int unlink_ret = old_parent_inode.unlink(old_child.c_str(), &old_child_inode);
+    if (unlink_ret == kFail) {
+        return -ENOENT;
+    }
+
+    bool replace = !(flags & RENAME_NOREPLACE);
+    bool exchange = flags & RENAME_EXCHANGE;
+
+    /* link the new inode to old inode. */
+    if (exchange) {
+        new_parent_inode.unlink(new_child.c_str(), &new_child_inode);
+        old_parent_inode.link(old_child.c_str(), &new_child_inode);
+    }
+
+    /* link the old inode to new. */
+    new_parent_inode.link(new_child.c_str(), &old_child_inode, replace);
+    return 0;
+}
+
+int sb_open(const char *path, struct fuse_file_info *fi) {
+    DLOG(INFO) << "open " << path;
+    /* resolve path */
+    Inode inode = path_resolver->resolve(string(path));
+    if (!inode.isValid()) {
+        return -ENOENT;
+    }
+    /* TODO: handle O_RDONLY, O_WRONLY, O_RDWR, O_EXEC, O_SEARCH */
+    int flags = fi->flags;
+    fi->fh = fd_manager->open(inode);
+    return 0;
+}
 
 int sb_release(const char *path, struct fuse_file_info *fi);
 
