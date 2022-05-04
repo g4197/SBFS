@@ -85,6 +85,14 @@ struct Inode {
      * Unlink "name" inode from this Inode, and return the Inode.
      */
     int unlink(const char *name, Inode *inode);
+    /*
+     * sync data (and inode metadata) to disk.
+     * if metadata is True, then should sync metadata.
+     * else sync data only.
+     * 1. sync data by calling diskinode's sync_data().
+     * 2. sync metadata by directly call sync() with block ID.
+     */
+    int sync(bool metadata = true);
 
     /* Judge if the Inode item is valid. */
     inline bool isValid() {
