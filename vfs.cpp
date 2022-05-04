@@ -132,6 +132,7 @@ int sb_rmdir(const char *path) {
         return -ENOENT;
     }
     int find_ret = parent_inode.find(child.c_str(), &child_inode);
+    /* TODO: not a directory */
     if (find_ret == kFail) {
         return -ENOENT;
     }
@@ -147,8 +148,7 @@ int sb_rmdir(const char *path) {
     }
 
     /* It's an empty dir, delete it. */
-    auto ret = parent_inode.remove(child.c_str());
-    rt_assert(ret != kFail, "remove failed");
+    parent_inode.remove(child.c_str());
     return 0;
 }
 
@@ -164,13 +164,63 @@ int sb_create(const char *path, mode_t mode, struct fuse_file_info *fi) {
     /* write information */
     DiskInode disk_inode(DiskInodeType::kFile);
     disk_inode.mode = mode & 0777;
+    /* TODO: parent not a directory, file exists... */
     parent_inode.create(child.c_str(), &disk_inode, &child_inode);
     return 0;
 }
 
-int sb_unlink(const char *path);
+int sb_unlink(const char *path) {
+    DLOG(INFO) << "unlink " << path;
+    /* resolve path */
+    string dir = string(path), parent, child;
+    splitFromLastSlash(dir, parent, child);
+    Inode parent_inode = path_resolver->resolve(parent), child_inode;
+    if (!parent_inode.isValid()) {
+        return -ENOENT;
+    }
+    int find_ret = parent_inode.find(child.c_str(), &child_inode);
+    /* TODO: Not a directory... */
+    if (find_ret == kFail) {
+        return -ENOENT;
+    }
 
-int sb_rename(const char *oldpath, const char *newpath, unsigned int flags);
+    /* Remove the file. */
+    parent_inode.remove(child.c_str());
+    return 0;
+}
+
+int sb_rename(const char *oldpath, const char *newpath, unsigned int flags) {
+    DLOG(INFO) << "rename " << oldpath << " to " << newpath;
+    /* resolve path */
+    string old_dir = string(oldpath), old_parent, old_child;
+    splitFromLastSlash(old_dir, old_parent, old_child);
+    Inode old_parent_inode = path_resolver->resolve(old_parent), old_child_inode;
+    if (!old_parent_inode.isValid()) {
+        return -ENOENT;
+    }
+
+    string new_dir = string(newpath), new_parent, new_child;
+    splitFromLastSlash(new_dir, new_parent, new_child);
+    Inode new_parent_inode = path_resolver->resolve(new_parent), new_child_inode;
+
+    int unlink_ret = old_parent_inode.unlink(old_child.c_str(), &old_child_inode);
+    if (unlink_ret == kFail) {
+        return -ENOENT;
+    }
+
+    bool replace = !(flags & RENAME_NOREPLACE);
+    bool exchange = flags & RENAME_EXCHANGE;
+
+    /* link the new inode to old inode. */
+    if (exchange) {
+        new_parent_inode.unlink(new_child.c_str(), &new_child_inode);
+        old_parent_inode.link(old_child.c_str(), &new_child_inode);
+    }
+
+    /* link the old inode to new. */
+    new_parent_inode.link(new_child.c_str(), &old_child_inode, replace);
+    return 0;
+}
 
 int sb_open(const char *path, struct fuse_file_info *fi) {
     DLOG(INFO) << "open " << path;

@@ -48,7 +48,7 @@ struct Inode {
      * its DiskInode info is in disk_inode.
      * Only support directory type.
      * input: name, disk_inode
-     * output: inode, 0 or 1
+     * output: inode, 0 or -1
      * 1. allocate inode for new file / directory.
      * 2. allocate block for new directory.
      * 3. write directory data. (create . and ..)
@@ -74,6 +74,17 @@ struct Inode {
      * Only support directory type.
      */
     int remove(const char *name);
+    /*
+     * Link parameter "inode" with "name" to this Inode.
+     * Used in rename, etc.
+     * if replace is true, replace if name already exists.
+     * else return kFail if exists.
+     */
+    int link(const char *name, const Inode *inode, bool replace = false);
+    /*
+     * Unlink "name" inode from this Inode, and return the Inode.
+     */
+    int unlink(const char *name, Inode *inode);
 
     /* Judge if the Inode item is valid. */
     inline bool isValid() {
