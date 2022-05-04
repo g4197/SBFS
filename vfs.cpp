@@ -235,17 +235,92 @@ int sb_open(const char *path, struct fuse_file_info *fi) {
     return 0;
 }
 
-int sb_release(const char *path, struct fuse_file_info *fi);
+int sb_release(const char *path, struct fuse_file_info *fi) {
+    DLOG(INFO) << "release " << path;
+    fd_manager->close(fi->fh);
+    fi->fh = 0;
+    return 0;
+}
 
-int sb_read(const char *path, char *buf, size_t size, off_t offset, struct fuse_file_info *fi);
+int sb_read(const char *path, char *buf, size_t size, off_t offset, struct fuse_file_info *fi) {
+    DLOG(INFO) << "read " << path << " with size " << size << " and offset " << offset;
+    if (size > UINT32_MAX) {
+        /* Temporarily not support read > 4GB */
+        DLOG(ERROR) << "read size > 4GB";
+        return -EINVAL;
+    }
+    Inode inode;
+    if (!fd_manager->get(fi->fh, &inode)) {
+        DLOG(ERROR) << "invalid fd";
+        return -EBADF;
+    }
+    if (inode.read_data(offset, (uint8_t *)buf, size) == kFail) {
+        DLOG(ERROR) << "read data failed";
+        return -EIO;
+    }
+    return size;
+}
 
-int sb_write(const char *path, const char *buf, size_t size, off_t offset, struct fuse_file_info *fi);
+int sb_write(const char *path, const char *buf, size_t size, off_t offset, struct fuse_file_info *fi) {
+    DLOG(INFO) << "write " << path << " with size " << size << " and offset " << offset;
+    if (size > UINT32_MAX) {
+        /* Temporarily not support write > 4GB */
+        DLOG(ERROR) << "write size > 4GB";
+        return -EINVAL;
+    }
+    Inode inode;
+    if (!fd_manager->get(fi->fh, &inode)) {
+        DLOG(ERROR) << "invalid fd";
+        return -EBADF;
+    }
+    if (inode.write_data(offset, (uint8_t *)buf, size) == kFail) {
+        DLOG(ERROR) << "write data failed";
+        return -EIO;
+    }
+    return size;
+}
 
-int sb_truncate(const char *path, off_t off, struct fuse_file_info *fi);
+int sb_truncate(const char *path, off_t off, struct fuse_file_info *fi) {
+    DLOG(INFO) << "truncate " << path << " with offset " << off;
+    if (off > UINT32_MAX) {
+        /* Temporarily not support truncate > 4GB */
+        DLOG(ERROR) << "truncate offset > 4GB";
+        return -EINVAL;
+    }
+    Inode inode;
+    if (!fd_manager->get(fi->fh, &inode)) {
+        /* resolve path */
+        inode = path_resolver->resolve(string(path));
+        if (!inode.isValid()) {
+            return -ENOENT;
+        }
+    }
+    if (inode.resize(off) == kFail) {
+        DLOG(ERROR) << "truncate failed";
+        return -EIO;
+    }
+    return 0;
+}
 
-int sb_statfs(const char *path, struct statvfs *stbuf);
+int sb_statfs(const char *path, struct statvfs *stbuf) {
+    DLOG(INFO) << "statfs " << path;
+    /* TODO: unimplemented, need block info */
+    return 0;
+}
 
-int sb_fsync(const char *path, int datasync, struct fuse_file_info *fi);
+int sb_fsync(const char *path, int datasync, struct fuse_file_info *fi) {
+    DLOG(INFO) << "fsync " << path;
+    Inode inode;
+    if (!fd_manager->get(fi->fh, &inode)) {
+        DLOG(ERROR) << "invalid fd";
+        return -EBADF;
+    }
+    if (inode.sync(datasync == 0) == kFail) {
+        DLOG(ERROR) << "sync failed";
+        return -EIO;
+    }
+    return 0;
+}
 
 };  // namespace vfs
 };  // namespace sbfs
