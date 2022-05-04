@@ -103,30 +103,35 @@ struct DiskInode {
     /* calculate how many blocks needed by a file/dir with "size" */
     uint32_t total_blocks(uint32_t size);
 
-    /*
-     * This interface is different from rCore's, for it should handle both increase and decrease,
-     * and recycle is done in this function.
-     * if decrease size, recycle data blocks but reserve inode blocks.
+    /**
+     * @brief resize the size of a file to new_size,
+     * could be increase or decrease
+     * decrease to 0 will redirect to clear, which is much faster
+     * @attention metadata will be updated
      */
     int resize(uint32_t new_size, Bitmap *data_bitmap, BlockDevice *dev);
-    /*
-     * Recycle both data blocks and inode blocks.
-     */
-    int clear(Bitmap *data_bitmap, BlockDevice *dev);
-    /*
-     * Read "len" bytes from offset to "buf".
-     * Metadata (access time etc.) should be updated.
-     * attention: offset is relative to data managed by this inode.
+
+    /**
+     * @brief read 'len' byte from data start from 'offset' to 'buf', metadata will be updated
+     * @attention: offset is relatively to the file that this inode governs
+     * @param offset offset must be smaller than the file size
+     * @param buf we don't check the size of buf, so it's your responsibility
+     * @param len 'offset + len' is larger than the file size, it will be truncated
+     * @return number of bytes read on success, kFail on failure
      */
     int read_data(uint32_t offset, uint8_t *buf, uint32_t len, BlockDevice *dev);
-    /*
-     * Write "len" bytes from "buf" to offset.
-     * Metadata (access time etc.) should be updated.
-     * attention: offset is relative to data managed by this inode.
+    /**
+     * @brief write 'len' byte from 'buf' to data start from 'offset', metadata will be updated
+     * @attention: offset is relatively to the file that this inode governs
+     * @param offset offset must be smaller than the file size
+     * @param buf we don't check the size of buf, so it's your responsibility
+     * @param len if 'offset + len' is larger than the file size, it will be truncated
+     * @return number of bytes write on success, kFail on failure
      */
     int write_data(uint32_t offset, const uint8_t *buf, uint32_t len, BlockDevice *dev);
 
 private:
+    int clear(Bitmap *data_bitmap, BlockDevice *dev);
     int increase(int, int, int, int, BlockDevice *, Bitmap *);
     int decrease(int, int, int, int, BlockDevice *, Bitmap *);
     void update_meta();

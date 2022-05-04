@@ -368,6 +368,8 @@ int DiskInode::decrease(
 
 int DiskInode::resize(uint32_t new_size, Bitmap *data_bitmap, BlockDevice *dev) {
     update_meta();
+    if (new_size == 0)
+        return clear(data_bitmap, dev);
     auto old_size = size;
     size = new_size;
     auto old_data_blocks = data_blocks(old_size);
@@ -458,10 +460,12 @@ int DiskInode::read_data(uint32_t offset, uint8_t *buf, uint32_t len, BlockDevic
 
     if (len == 0)
         return kSuccess;
-    if (offset + len >= size) {
-        DLOG(ERROR) << "read data out of range";
+    if (offset >= size) {
+        DLOG(ERROR) << "read data offset out of range";
         return kFail;
     }
+    if (offset + len >= size)
+        len = size - offset;
     int l = offset, r = offset + len;
     int lid = l / kBlockSize, rid = r / kBlockSize;
     int loff = l % kBlockSize, roff = r % kBlockSize;
@@ -509,11 +513,12 @@ int DiskInode::write_data(uint32_t offset, const uint8_t *buf, uint32_t len, Blo
     update_meta();
     if (len == 0)
         return kSuccess;
-    auto capcity = data_blocks(size) * kBlockSize;
-
-    if (offset + len >= capcity) {
+    if (offset >= size) {
         DLOG(ERROR) << "write data out of range";
         return kFail;
+    }
+    if (offset + len >= size) {
+        len = size - offset;
     }
     int l = offset, r = offset + len;
     int lid = l / kBlockSize, rid = r / kBlockSize;
