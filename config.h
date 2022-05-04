@@ -32,7 +32,7 @@ inline void rt_assert(bool cond, const char *msg) {
     } while (0)
 #endif
 
-constexpr uint64_t kBlockSize = 512;  // block is 512B
+constexpr uint64_t kBlockSize = 4096;  // block is 4kb
 constexpr uint64_t kBlockCacheSize = MB(32);
 
 using blk_id_t = uint32_t;
