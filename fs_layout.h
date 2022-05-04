@@ -119,25 +119,25 @@ struct DiskInode {
      */
     int clear(Bitmap *data_bitmap, BlockDevice *dev);
     /*
-     * Read "size" bytes from offset to "buf".
+     * Read "len" bytes from offset to "buf".
      * Metadata (access time etc.) should be updated.
      * attention: offset is relative to data managed by this inode.
      */
-    int read_data(uint32_t offset, uint8_t *buf, uint32_t size, BlockDevice *dev);
+    int read_data(uint32_t offset, uint8_t *buf, uint32_t len, BlockDevice *dev);
     /*
-     * Write "size" bytes from "buf" to offset.
+     * Write "len" bytes from "buf" to offset.
      * Metadata (access time etc.) should be updated.
      * attention: offset is relative to data managed by this inode.
      */
-    int write_data(uint32_t offset, const uint8_t *buf, uint32_t size, BlockDevice *dev);
-    /*
-     * sync all data to disk.
-     */
+    int write_data(uint32_t offset, const uint8_t *buf, uint32_t len, BlockDevice *dev);
+
     int sync_data(BlockDevice *dev);
 
 private:
     int increase(int, int, int, int, BlockDevice *, Bitmap *);
     int decrease(int, int, int, int, BlockDevice *, Bitmap *);
+    void update_meta();
+
 };
 
 static_assert(sizeof(DiskInode) <= kBlockSize, "DiskInode size error");
