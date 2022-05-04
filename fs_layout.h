@@ -68,6 +68,10 @@ struct IndirectIndex2 {
     blk_id_t indirect1[kBlockSize / sizeof(blk_id_t)];
 };
 
+struct IndirectIndex3 {
+    blk_id_t indirect2[kBlockSize / sizeof(blk_id_t)];
+};
+
 /* Same to DiskInode in rCore */
 struct DiskInode {
     /* Bytes for dir/file, use total_blocks to get block num. */
@@ -87,6 +91,7 @@ struct DiskInode {
     blk_id_t direct[kInodeDirectCnt];
     blk_id_t indirect1;
     blk_id_t indirect2;
+    blk_id_t indirect3;
     DiskInodeType type;
 
     /* Metadata (create time etc.) should be updated. */
