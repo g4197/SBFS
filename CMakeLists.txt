@@ -24,6 +24,7 @@ add_compile_options(
 add_definitions(
     # -DNDEBUG
     -DFUSE_USE_VERSION=31
+    # -DPATH_CACHE
 )
 
 link_libraries(

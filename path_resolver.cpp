@@ -19,6 +19,7 @@ Inode PathResolver::resolve(const std::string &path) {
     /* lookup cache first. */
     Inode cur_inode = fs_->root();
     int cur_path_index = 0;
+#ifdef PATH_CACHE
     for (int i = 0; i < cache_vec.size(); ++i) {
         string cache_path = cache_vec[i];
         path_cache_t::iterator iter = path_cache_.find(cache_path);
@@ -29,6 +30,7 @@ Inode PathResolver::resolve(const std::string &path) {
             cur_path_index = i + 1;  // Now ready for next part of path.
         }
     }
+#endif
     /* continue resolving path. */
     for (int i = cur_path_index; i < path_vec.size(); ++i) {
         string path_part = path_vec[i];
@@ -36,6 +38,8 @@ Inode PathResolver::resolve(const std::string &path) {
         if (cur_inode.find(path_part.c_str(), &next_inode) == kFail) {
             return Inode();
         }
+        cur_inode = next_inode;
+#ifdef PATH_CACHE
         /* Update cache. */
         size_t cur_size_increase = cache_vec[i].size() + sizeof(path_cache_key_t) + sizeof(path_cache_val_t);
         size_t size_to_evict = cur_cache_size_ + cur_size_increase - max_cache_size_;
@@ -43,6 +47,7 @@ Inode PathResolver::resolve(const std::string &path) {
             this->evict(size_to_evict);
         }
         path_cache_[cache_vec[i]] = path_cache_val_t{ cur_inode, true };
+#endif
     }
     return cur_inode;
 }
