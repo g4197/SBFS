@@ -12,11 +12,19 @@ add_compile_options(
 	-std=c++17
 	# -O2
 	-g
+    -Wall
+    -Wextra
+    -Wno-write-strings
+    -Wno-sign-compare
+    -Wno-unused-variable
+    -Wno-unused-parameter
+    -Werror
 )
 
 add_definitions(
     # -DNDEBUG
     -DFUSE_USE_VERSION=31
+    # -DPATH_CACHE
 )
 
 link_libraries(

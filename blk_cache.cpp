@@ -1,11 +1,14 @@
 #include "blk_cache.h"
+
 #include "blk_dev.h"
 
 namespace sbfs {
 BlockCacheManager::BlockCacheManager(const uint64_t cache_size, BlockDevice *parent)
-    : map_(), size_(cache_size), parent_(parent) {}
+    : map_(), parent_(parent), size_(cache_size) {
+}
 
-BlockCacheManager::~BlockCacheManager() {}
+BlockCacheManager::~BlockCacheManager() {
+}
 
 int BlockCacheManager::upsert(blk_id_t block_id, const Block *block) {
     parent_->write_to_disk(block_id, block);
@@ -27,4 +30,4 @@ int BlockCacheManager::sync(blk_id_t block_id) {
     return kSuccess;
 }
 
-};
+};  // namespace sbfs
