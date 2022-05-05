@@ -130,7 +130,12 @@ struct DiskInode {
      */
     int write_data(uint32_t offset, const uint8_t *buf, uint32_t len, BlockDevice *dev);
 
-    int sync_data(BlockDevice *dev);
+    /**
+     * @brief sync all data blocks to disk, disk inode itself are not synced
+     * @param direct if true, sync indirect1 and indirect2 to disk if exists
+     * @return int kSuccess on success, kFail on failure
+     */
+    int sync_data(BlockDevice *dev, bool indirect = false);
 
 private:
     int clear(Bitmap *data_bitmap, BlockDevice *dev);

@@ -573,6 +573,44 @@ int DiskInode::write_data(uint32_t offset, const uint8_t *buf, uint32_t len, Blo
     return kSuccess;
 }
 
+int DiskInode::sync_data(BlockDevice *dev, bool indirect) {
+    int data_blk = data_blocks(size);
+    for (int i = 0; i < data_blk; ++i) {
+        if (dev->sync(block_id(i, dev)) != kSuccess) {
+            DLOG(ERROR) << "sync block " << block_id(i, dev) << " failed at sync_data";
+            return kFail;
+        }
+    }
+    if (indirect) {
+        if (indirect1 != 0) {
+            if (dev->sync(indirect1) != kSuccess) {
+                DLOG(ERROR) << "sync block " << indirect1 << " failed at sync_data";
+                return kFail;
+            }
+        }
+        if (indirect2 != 0) {
+            int rest = total_blocks(size) - data_blk - 2;  // remove indirect1 and indirect2
+            auto buf = new Block;
+            if (dev->read(indirect2, buf) != kSuccess) {
+                DLOG(ERROR) << "read block " << indirect2 << " failed at sync_data";
+                return kFail;
+            }
+            auto p = (uint32_t *)buf->data;
+            for (int i = 0; i < rest; ++i) {
+                if (dev->sync(p[i]) != kSuccess) {
+                    DLOG(ERROR) << "sync block " << p[i] << " failed at sync_data";
+                    return kFail;
+                }
+            }
+            if (dev->sync(indirect2) != kSuccess) {
+                DLOG(ERROR) << "sync block " << indirect2 << " failed at sync_data";
+                return kFail;
+            }
+        }
+    }
+    return kSuccess;
+}
+
 void DiskInode::update_meta() {
     // do nothing, for now
 }
