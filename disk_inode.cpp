@@ -10,8 +10,9 @@ DiskInode::DiskInode(DiskInodeType type_) {
 
 constexpr int INODE_DIRECT_COUNT = kInodeDirectCnt;
 constexpr int INODE_INDIRECT_COUNT = kBlockSize / sizeof(uint32_t);
-constexpr int MAX_BLOCK_SIZE = INODE_DIRECT_COUNT + INODE_INDIRECT_COUNT + INODE_INDIRECT_COUNT * INODE_INDIRECT_COUNT;
-constexpr int MAX_FILE_SIZE = MAX_BLOCK_SIZE * kBlockSize;
+constexpr uint32_t MAX_BLOCK_SIZE =
+    INODE_DIRECT_COUNT + INODE_INDIRECT_COUNT + INODE_INDIRECT_COUNT * INODE_INDIRECT_COUNT;
+constexpr uint32_t MAX_FILE_SIZE = min((uint64_t)UINT32_MAX, ((uint64_t)MAX_BLOCK_SIZE) * kBlockSize);
 
 blk_id_t DiskInode::block_id(uint32_t inner_id, BlockDevice *dev) {
     if (inner_id >= MAX_BLOCK_SIZE) {

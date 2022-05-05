@@ -149,6 +149,8 @@ int sb_rmdir(const char *path) {
 
     /* It's an empty dir, delete it. */
     parent_inode.remove(child.c_str());
+    path_resolver->removePrefix(dir);
+
     return 0;
 }
 
@@ -186,6 +188,8 @@ int sb_unlink(const char *path) {
 
     /* Remove the file. */
     parent_inode.remove(child.c_str());
+    path_resolver->removePrefix(dir);
+
     return 0;
 }
 
@@ -219,6 +223,9 @@ int sb_rename(const char *oldpath, const char *newpath, unsigned int flags) {
 
     /* link the old inode to new. */
     new_parent_inode.link(new_child.c_str(), &old_child_inode, replace);
+
+    path_resolver->removePrefix(old_dir);
+    path_resolver->removePrefix(new_dir);
     return 0;
 }
 

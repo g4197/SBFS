@@ -29,8 +29,8 @@ Storage Basis FS
 
 ## 路径解析部分 (path_resolver.h)
 
-* 路径解析与`path cache`的实现。
+* ~路径解析与`path cache`的实现。~
 
 ## VFS部分 (vfs.h)
 
-* 利用`Inode`类提供的单文件夹操作及`path resolver`提供的路径解析实现所有VFS功能，并整合到主函数
+* ~利用`Inode`类提供的单文件夹操作及`path resolver`提供的路径解析实现所有VFS功能，并整合到主函数~
