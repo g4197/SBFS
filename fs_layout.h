@@ -89,10 +89,11 @@ struct DiskInode {
     blk_id_t indirect2;
     DiskInodeType type;
 
+    DiskInode() = default;
     /* Metadata (create time etc.) should be updated. */
-    DiskInode(DiskInodeType type_);
+    explicit DiskInode(DiskInodeType type_);
     /**
-     * @brief get actuall block_id of an inner_id
+     * @brief get actual block_id of an inner_id
      *
      * @param inner_id the block offset within a file
      * @return blk_id_t the ABSOLUTE block id

@@ -15,7 +15,7 @@ struct DirBlock {
 class SBFileSystem;
 
 struct Position {
-    uint32_t block_id;
+    blk_id_t block_id;
     uint32_t block_offset;
 };
 
@@ -28,21 +28,21 @@ struct Inode {
      * Metadata (access time etc.) should be updated.
      * attention: offset is relative to data managed by this inode.
      */
-    int read_data(uint32_t offset, uint8_t *buf, uint32_t size);
+    int read_data(uint32_t offset, uint8_t *buf, uint32_t size) const;
     /*
      * Write "size" bytes from "buf" to offset.
      * Metadata (access time etc.) should be updated.
      * attention: offset is relative to data managed by this inode.
      */
-    int write_data(uint32_t offset, const uint8_t *buf, uint32_t size);
+    int write_data(uint32_t offset, const uint8_t *buf, uint32_t size) const;
     /*
      * Read diskinode of this inode to buf.
      */
-    int read_inode(DiskInode *buf);
+    int read_inode(DiskInode *buf) const;
     /*
      * Write diskinode of this inode from buf.
      */
-    int write_inode(const DiskInode *buf);
+    int write_inode(const DiskInode *buf) const;
     /*
      * Create a file / directory with "name" in current dir.
      * its DiskInode info is in disk_inode.
@@ -56,19 +56,19 @@ struct Inode {
      * 5. update parent directory's data block, add new entry.
      * 6. update parent directory's inode (size, access time etc.)
      */
-    int create(const char *name, const DiskInode *disk_inode, Inode *inode);
+    int create(const char *name, DiskInode *disk_inode, Inode *inode) const;
     /*
      * Find inode with "name" in current dir.
      * Only support directory type.
      * Inode saves the inode found.
      * return kFail if not found.
      */
-    int find(const char *name, Inode *inode);
+    int find(const char *name, Inode *inode) const;
     /*
      * Resize current inode to "new_size".
      * Only support file type.
      */
-    int resize(uint32_t new_size);
+    [[nodiscard]] int resize(uint32_t new_size) const;
     /*
      * Remove a file / directory with "name" in current dir.
      * Only support directory type.
@@ -92,10 +92,10 @@ struct Inode {
      * 1. sync data by calling diskinode's sync_data().
      * 2. sync metadata by directly call sync() with block ID.
      */
-    int sync(bool metadata = true);
+    [[nodiscard]] int sync(bool metadata = true) const;
 
     /* Judge if the Inode item is valid. */
-    inline bool isValid() {
+    [[nodiscard]] inline bool isValid() const {
         return pos.block_id != 0;
     }
 
