@@ -4,6 +4,20 @@
 #include "blk_dev.h"
 
 namespace sbfs {
+
+struct Position {
+    uint32_t block_id;
+    uint32_t block_offset;
+
+    static inline Position invalid() {
+        return Position{ UINT32_MAX, UINT32_MAX };
+    }
+
+    inline bool isValid() {
+        return block_id != UINT32_MAX;
+    }
+};
+
 /*
  * General layout:
  * Super block -> Inode Bitmap -> Inodes -> Data Bitmap -> Data
@@ -17,10 +31,20 @@ struct SuperBlock {
     uint32_t inode_area_blocks;
     uint32_t data_bitmap_blocks;
     uint32_t data_area_blocks;
+    Position root_inode_pos;
     inline bool isValid() {
         return magic == kFSMagic;
     }
-    uint8_t padding[kBlockSize - 24];
+
+    inline void print() {
+        DLOG(INFO) << "total_blocks: " << total_blocks;
+        DLOG(INFO) << "inode_bitmap_blocks: " << inode_bitmap_blocks;
+        DLOG(INFO) << "inode_area_blocks: " << inode_area_blocks;
+        DLOG(INFO) << "data_bitmap_blocks: " << data_bitmap_blocks;
+        DLOG(INFO) << "data_area_blocks: " << data_area_blocks;
+        DLOG(INFO) << "root inode pos: " << root_inode_pos.block_id << " " << root_inode_pos.block_offset;
+    }
+    uint8_t padding[kBlockSize - 32];
 };
 static_assert(sizeof(SuperBlock) == kBlockSize, "SuperBlock size error");
 

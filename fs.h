@@ -12,9 +12,7 @@ namespace sbfs {
 class SBFileSystem {
 public:
     /* Create a new SBFS. */
-    static SBFileSystem create(const char *path,
-                               const uint64_t size,
-                               uint32_t total_blocks,
+    static SBFileSystem create(const char *path, const uint64_t size, uint32_t total_blocks,
                                uint32_t inode_bitmap_blocks);
 
     /* Open an existing SBFS. */
@@ -29,6 +27,9 @@ public:
     /* get actual inode position by inode id. */
     Position getDiskInodePos(uint32_t inode_id);
 
+    /* get actual disk inode id by inode position. */
+    uint32_t getDiskInodeId(const Position &pos);
+
     /* Allocate an inode, returns inode id. */
     uint32_t alloc_inode();
 
@@ -42,7 +43,12 @@ public:
     int free_data(uint32_t block_id);
 
 private:
+    /* called after init super block. */
+    void initBitmapAndBlock();
+    /* create root inode. */
+    void createRoot();
     BlockDevice *device_;
+    SuperBlock super_block_;
     Bitmap *inode_bitmap_; /* Bitmap for inodes, attention: inode size may be < kBlockSize. */
     Bitmap *data_bitmap_;  /* Bitmap for data, attention: data block size is kBlockSize. */
     uint32_t inode_area_start_block_;

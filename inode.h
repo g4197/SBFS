@@ -14,11 +14,6 @@ struct DirBlock {
 
 class SBFileSystem;
 
-struct Position {
-    uint32_t block_id;
-    uint32_t block_offset;
-};
-
 struct Inode {
     /* Place of DiskInode */
     Position pos;
@@ -96,7 +91,7 @@ struct Inode {
 
     /* Judge if the Inode item is valid. */
     inline bool isValid() {
-        return pos.block_id != 0;
+        return pos.isValid();
     }
 
     inline bool operator<(const Inode &other) const {
