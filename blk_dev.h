@@ -13,7 +13,7 @@ public:
     /* 
      * Read block_id to buf,
      * First find the block in BlockCacheManager,
-     * if miss, read from disk, and put it in BlockCacheManager.
+     * if missed, read from disk, and put it in BlockCacheManager.
      */
     int read(blk_id_t block_id, Block *buf);
     /* 

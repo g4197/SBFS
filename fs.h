@@ -42,6 +42,8 @@ public:
     /* Deallocate a data block. */
     int free_data(uint32_t block_id);
 
+    Bitmap *data_bitmap_;  /* Bitmap for data, attention: data block size is kBlockSize. */
+
 private:
     /* called after init super block. */
     void initBitmapAndBlock();
@@ -50,7 +52,6 @@ private:
     BlockDevice *device_;
     SuperBlock super_block_;
     Bitmap *inode_bitmap_; /* Bitmap for inodes, attention: inode size may be < kBlockSize. */
-    Bitmap *data_bitmap_;  /* Bitmap for data, attention: data block size is kBlockSize. */
     uint32_t inode_area_start_block_;
     uint32_t data_area_start_block_;
 };
