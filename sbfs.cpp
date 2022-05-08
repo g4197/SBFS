@@ -79,7 +79,7 @@ void SBFileSystem::createRoot() {
     root_dir_block.entries[0].inode = root_inode_id;
     strcpy(root_dir_block.entries[1].name, "..");
     root_dir_block.entries[1].inode = root_inode_id;
-    root_inode_data.size = sizeof(DirBlock);
+    root_inode_data.size = 2 * sizeof(DirEntry);
     root_inode_data.direct[0] = root_data_id;
 
     Inode inode{ getDiskInodePos(root_inode_id), this };
