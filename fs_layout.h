@@ -6,7 +6,7 @@
 namespace sbfs {
 
 struct Position {
-    uint32_t block_id;
+    blk_id_t block_id;
     uint32_t block_offset;
 
     static inline Position invalid() {
@@ -32,11 +32,11 @@ struct SuperBlock {
     uint32_t data_bitmap_blocks;
     uint32_t data_area_blocks;
     Position root_inode_pos;
-    inline bool isValid() {
+    [[nodiscard]] inline bool isValid() const {
         return magic == kFSMagic;
     }
 
-    inline void print() {
+    inline void print() const {
         DLOG(INFO) << "total_blocks: " << total_blocks;
         DLOG(INFO) << "inode_bitmap_blocks: " << inode_bitmap_blocks;
         DLOG(INFO) << "inode_area_blocks: " << inode_area_blocks;
@@ -113,10 +113,11 @@ struct DiskInode {
     blk_id_t indirect2;
     DiskInodeType type;
 
+    DiskInode() = default;
     /* Metadata (create time etc.) should be updated. */
-    DiskInode(DiskInodeType type_);
+    explicit DiskInode(DiskInodeType type_);
     /**
-     * @brief get actuall block_id of an inner_id
+     * @brief get actual block_id of an inner_id
      *
      * @param inner_id the block offset within a file
      * @return blk_id_t the ABSOLUTE block id
