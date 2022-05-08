@@ -68,18 +68,18 @@ struct Inode {
      * Remove a file / directory with "name" in current dir.
      * Only support directory type.
      */
-    int remove(const char *name);
+    int remove(const char *name) const;
     /*
      * Link parameter "inode" with "name" to this Inode.
      * Used in rename, etc.
      * if replace is true, replace if name already exists.
      * else return kFail if exists.
      */
-    int link(const char *name, const Inode *inode, bool replace = false);
+    int link(const char *name, const Inode *inode, bool replace = false) const;
     /*
      * Unlink "name" inode from this Inode, and return the Inode.
      */
-    int unlink(const char *name, Inode *inode);
+    int unlink(const char *name, Inode *inode) const;
     /*
      * sync data (and inode metadata) to disk.
      * if metadata is True, then should sync metadata.

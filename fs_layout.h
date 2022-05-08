@@ -32,11 +32,11 @@ struct SuperBlock {
     uint32_t data_bitmap_blocks;
     uint32_t data_area_blocks;
     Position root_inode_pos;
-    inline bool isValid() {
+    [[nodiscard]] inline bool isValid() const {
         return magic == kFSMagic;
     }
 
-    inline void print() {
+    inline void print() const {
         DLOG(INFO) << "total_blocks: " << total_blocks;
         DLOG(INFO) << "inode_bitmap_blocks: " << inode_bitmap_blocks;
         DLOG(INFO) << "inode_area_blocks: " << inode_area_blocks;
