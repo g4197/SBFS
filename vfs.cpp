@@ -22,7 +22,7 @@ void splitFromLastSlash(string &path, string &parent, string &child) {
         parent = "";
         child = path;
     } else {
-        parent = path.substr(0, pos);
+        parent = path.substr(0, pos + 1);
         child = path.substr(pos + 1);
     }
 }
@@ -175,7 +175,7 @@ int sb_create(const char *path, mode_t mode, struct fuse_file_info *fi) {
     }
     /* write information */
     DiskInode disk_inode(DiskInodeType::kFile);
-    disk_inode.mode = mode & 0777;
+    disk_inode.mode |= mode & 0777;
     /* TODO: parent not a directory, file exists... */
     parent_inode.create(child.c_str(), &disk_inode, &child_inode);
     return 0;
@@ -253,7 +253,7 @@ int sb_open(const char *path, struct fuse_file_info *fi) {
 }
 
 int sb_release(const char *path, struct fuse_file_info *fi) {
-    DLOG(WARNING) << "release " << path;
+    DLOG(WARNING) << "release " << path << " " << fi << " " << fi->fh;
     fd_manager->close(fi->fh);
     fi->fh = 0;
     return 0;

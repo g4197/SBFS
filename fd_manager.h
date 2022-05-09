@@ -24,6 +24,7 @@ public:
     }
 
     bool get(uint64_t fd, Inode *inode) {
+        if (fd == 0) return false;
         auto it = fd_manager.find(fd);
         if (it == fd_manager.end()) {
             return false;
@@ -33,6 +34,7 @@ public:
     }
 
     void close(uint64_t fd) {
+        if (fd == 0) return;
         if (fd_manager.find(fd) != fd_manager.end()) {
             Inode inode = fd_manager[fd];
             deltaRefCnt(inode, -1);

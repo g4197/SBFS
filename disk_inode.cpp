@@ -1,3 +1,5 @@
+#include <sys/stat.h>
+
 #include "fs_layout.h"
 using namespace std;
 using namespace sbfs;
@@ -5,6 +7,12 @@ using namespace sbfs;
 DiskInode::DiskInode(DiskInodeType type_) {
     memset(this, 0, sizeof(DiskInode));
     type = type_;
+    access_time = time(nullptr);
+    modify_time = time(nullptr);
+    create_time = time(nullptr);
+    uid = getuid();
+    gid = getgid();
+    mode = type_ == kDirectory ? S_IFDIR : S_IFREG;
     // TODO update trivial metadata
 }
 

@@ -36,7 +36,6 @@ int main(int argc, char **argv) {
     fuse_operations sb_op;
     sb_op.readdir = sb_readdir;
     sb_op.getattr = sb_getattr;
-    /*
     sb_op.mkdir = sb_mkdir;
     sb_op.rmdir = sb_rmdir;
     sb_op.destroy = sb_destroy;
@@ -49,7 +48,6 @@ int main(int argc, char **argv) {
     sb_op.write = sb_write;
     sb_op.truncate = sb_truncate;
     sb_op.fsync = sb_fsync;
-    */
 
     DLOG(WARNING) << "start fuse_main";
     fuse_main(args.argc, args.argv, &sb_op, nullptr);
