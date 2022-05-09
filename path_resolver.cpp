@@ -20,7 +20,6 @@ Inode PathResolver::resolve(const std::string &path) {
 
     string path_no_both_slash = removeEndSlash(path).substr(1);
     vector<string> path_vec = split(path_no_both_slash, '/', false);
-
     vector<string> cache_vec = split(path_no_both_slash, '/', true);
     /* lookup cache first. */
     Inode cur_inode = fs_->root();
@@ -45,6 +44,9 @@ Inode PathResolver::resolve(const std::string &path) {
         if (cur_inode.find(path_part.c_str(), &next_inode) == kFail) {
             return Inode::invalid();
         }
+        DLOG(WARNING) << "Resolving path part: " << path_part << " cur inode: " << cur_inode.pos.block_id << " "
+                      << cur_inode.pos.block_offset << " next_inode: " << next_inode.pos.block_id << " "
+                      << next_inode.pos.block_offset;
         cur_inode = next_inode;
 #ifdef PATH_CACHE
         /* Update cache. */

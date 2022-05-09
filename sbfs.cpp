@@ -118,7 +118,9 @@ uint32_t SBFileSystem::getDiskInodeId(const Position &pos) {
 
 /* Allocate an inode, returns inode id. */
 uint32_t SBFileSystem::alloc_inode() {
-    return inode_bitmap_->alloc(device_);
+    uint32_t inode_id = inode_bitmap_->alloc(device_);
+    DLOG(WARNING) << "alloc_inode: " << inode_id;
+    return inode_id;
 }
 
 /* Allocate a data block, returns block id (not block_id - data_area_start). */

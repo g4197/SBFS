@@ -464,7 +464,7 @@ int DiskInode::read_data(uint32_t offset, uint8_t *buf, uint32_t len, BlockDevic
     update_meta();
 
     if (len == 0) return kSuccess;
-    if (offset >= size) {
+    if (offset > size) {
         DLOG(WARNING) << "read data offset out of range";
         return kFail;
     }
@@ -509,13 +509,13 @@ int DiskInode::read_data(uint32_t offset, uint8_t *buf, uint32_t len, BlockDevic
     }
 
     delete data;
-    return kSuccess;
+    return len;
 }
 
 int DiskInode::write_data(uint32_t offset, const uint8_t *buf, uint32_t len, BlockDevice *dev) {
     update_meta();
     if (len == 0) return kSuccess;
-    if (offset >= size) {
+    if (offset > size) {
         DLOG(WARNING) << "write data out of range";
         return kFail;
     }
@@ -572,7 +572,7 @@ int DiskInode::write_data(uint32_t offset, const uint8_t *buf, uint32_t len, Blo
         }
     }
     delete data;
-    return kSuccess;
+    return len;
 }
 
 int DiskInode::sync_data(BlockDevice *dev, bool indirect) {

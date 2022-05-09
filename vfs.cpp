@@ -55,17 +55,17 @@ int sb_mkdir(const char *path, mode_t mode) {
     }
     /* write information */
     DiskInode disk_inode(DiskInodeType::kDirectory);
-    disk_inode.mode = mode & 0777;
+    disk_inode.mode |= mode & 0777;
 
     auto ret = parent_inode.create(child.c_str(), &disk_inode, &child_inode);
     rt_assert(ret != kFail, "mkdir failed");
+    DLOG(WARNING) << "mkdir success";
     return 0;
 }
 
 int sb_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t offset, fuse_file_info *fi,
                fuse_readdir_flags flags) {
     auto guard = lock_guard(mutex);
-    DLOG(WARNING) << "readdir";
     DLOG(WARNING) << "readdir " << path << " with offset " << offset;
     /* resolve path */
     string dir = string(path);
@@ -128,7 +128,6 @@ int sb_getattr(const char *path, struct stat *stbuf, fuse_file_info *fi) {
     stbuf->st_gid = disk_inode.gid;
     stbuf->st_blocks = disk_inode.total_blocks(disk_inode.size);
     stbuf->st_blksize = kBlockSize;
-    disk_inode.print();
     DLOG(WARNING) << "getattr " << path << " success";
     return 0;
 }

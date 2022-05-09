@@ -35,6 +35,8 @@ blk_id_t Bitmap::alloc(BlockDevice *dev) {
         auto p = (uint64_t *)(buf->data);
         for (int j = 0; j < kBlockSize / sz; j++) {
             int k = leading_zero(p[j]);
+            DLOG(WARNING) << "bitmap read " << start_block_id + i << " " << j << " " << p[j];
+            DLOG(WARNING) << "Allocated K is " << k;
             // int k = -1;
             if (k != -1) {
                 p[j] |= (1 << k);
