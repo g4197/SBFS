@@ -22,7 +22,7 @@ SBFileSystem SBFileSystem::create(const char *path, const uint64_t size, uint32_
     fs.super_block_.root_inode_pos = Position::invalid();
 
     fs.super_block_.print();
-    DLOG(INFO) << "unusable_blocks: "
+    DLOG(ERROR) << "unusable_blocks: "
                << remaining_blocks - fs.super_block_.data_bitmap_blocks - fs.super_block_.data_area_blocks;
     /* stage 1: super block initialize, but root inode pos is invalid. */
     fs.device_->write(0, (Block *)&fs.super_block_);

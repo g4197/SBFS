@@ -8,7 +8,7 @@
 namespace sbfs {
 /* Directory block stored in data area */
 constexpr uint64_t kDirEntries = kBlockSize / sizeof(DirEntry);
-struct DirBlock {
+struct alignas(kBlockSize) DirBlock {
     DirEntry entries[kDirEntries];
 };
 
@@ -40,7 +40,7 @@ struct Inode {
     int write_inode(const DiskInode *buf) const;
     /*
      * Create a file / directory with "name" in current dir.
-     * its DiskInode info is in disk_inode.
+     * its DiskInode ERROR is in disk_inode.
      * Only support directory type.
      * input: name, disk_inode
      * output: inode, 0 or -1

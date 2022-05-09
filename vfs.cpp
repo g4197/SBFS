@@ -26,8 +26,9 @@ void splitFromLastSlash(string &path, string &parent, string &child) {
 }
 
 void init_vfs(const char *path, const uint64_t size, bool is_open) {
+    DLOG(ERROR) << "Initializing VFS at " << path << " with size " << size;
     sbfs = (SBFileSystem *)malloc(sizeof(SBFileSystem));
-    if (is_open) {
+    if (!is_open) {
         *sbfs = SBFileSystem::create(path, size, kFSDataBlocks, kInodeBitmapBlocks);
     } else {
         *sbfs = SBFileSystem::open(path);
@@ -41,7 +42,7 @@ void sb_destroy(void *private_data) {
 }
 
 int sb_mkdir(const char *path, mode_t mode) {
-    DLOG(INFO) << "mkdir " << path << " with mode " << mode;
+    DLOG(ERROR) << "mkdir " << path << " with mode " << mode;
     /* resolve path and create inode */
     string dir = string(path), parent, child;
     splitFromLastSlash(dir, parent, child);
@@ -60,7 +61,7 @@ int sb_mkdir(const char *path, mode_t mode) {
 
 int sb_readdir(
     const char *path, void *buf, fuse_fill_dir_t filler, off_t offset, fuse_file_info *fi, fuse_readdir_flags flags) {
-    DLOG(INFO) << "readdir " << path << " with offset " << offset;
+    DLOG(ERROR) << "readdir " << path << " with offset " << offset;
     /* resolve path */
     string dir = string(path);
     Inode inode = path_resolver->resolve(dir);
@@ -94,7 +95,7 @@ int sb_readdir(
 }
 
 int sb_getattr(const char *path, struct stat *stbuf, fuse_file_info *fi) {
-    DLOG(INFO) << "getattr " << path << " with fh " << fi->fh;
+    DLOG(ERROR) << "getattr " << path << " with fh " << fi->fh;
     Inode inode;
     if (!fi->fh || !fd_manager->get(fi->fh, &inode)) {
         /* not open, resolve path. */
@@ -123,7 +124,7 @@ int sb_getattr(const char *path, struct stat *stbuf, fuse_file_info *fi) {
 }
 
 int sb_rmdir(const char *path) {
-    DLOG(INFO) << "rmdir " << path;
+    DLOG(ERROR) << "rmdir " << path;
     /* resolve path */
     string dir = string(path), parent, child;
     splitFromLastSlash(dir, parent, child);
@@ -155,7 +156,7 @@ int sb_rmdir(const char *path) {
 }
 
 int sb_create(const char *path, mode_t mode, struct fuse_file_info *fi) {
-    DLOG(INFO) << "create " << path << " with mode " << mode;
+    DLOG(ERROR) << "create " << path << " with mode " << mode;
     /* resolve path and create inode */
     string dir = string(path), parent, child;
     splitFromLastSlash(dir, parent, child);
@@ -172,7 +173,7 @@ int sb_create(const char *path, mode_t mode, struct fuse_file_info *fi) {
 }
 
 int sb_unlink(const char *path) {
-    DLOG(INFO) << "unlink " << path;
+    DLOG(ERROR) << "unlink " << path;
     /* resolve path */
     string dir = string(path), parent, child;
     splitFromLastSlash(dir, parent, child);
@@ -194,7 +195,7 @@ int sb_unlink(const char *path) {
 }
 
 int sb_rename(const char *oldpath, const char *newpath, unsigned int flags) {
-    DLOG(INFO) << "rename " << oldpath << " to " << newpath;
+    DLOG(ERROR) << "rename " << oldpath << " to " << newpath;
     /* resolve path */
     string old_dir = string(oldpath), old_parent, old_child;
     splitFromLastSlash(old_dir, old_parent, old_child);
@@ -230,7 +231,7 @@ int sb_rename(const char *oldpath, const char *newpath, unsigned int flags) {
 }
 
 int sb_open(const char *path, struct fuse_file_info *fi) {
-    DLOG(INFO) << "open " << path;
+    DLOG(ERROR) << "open " << path;
     /* resolve path */
     Inode inode = path_resolver->resolve(string(path));
     if (!inode.isValid()) {
@@ -243,14 +244,14 @@ int sb_open(const char *path, struct fuse_file_info *fi) {
 }
 
 int sb_release(const char *path, struct fuse_file_info *fi) {
-    DLOG(INFO) << "release " << path;
+    DLOG(ERROR) << "release " << path;
     fd_manager->close(fi->fh);
     fi->fh = 0;
     return 0;
 }
 
 int sb_read(const char *path, char *buf, size_t size, off_t offset, struct fuse_file_info *fi) {
-    DLOG(INFO) << "read " << path << " with size " << size << " and offset " << offset;
+    DLOG(ERROR) << "read " << path << " with size " << size << " and offset " << offset;
     if (size > UINT32_MAX) {
         /* Temporarily not support read > 4GB */
         DLOG(ERROR) << "read size > 4GB";
@@ -269,7 +270,7 @@ int sb_read(const char *path, char *buf, size_t size, off_t offset, struct fuse_
 }
 
 int sb_write(const char *path, const char *buf, size_t size, off_t offset, struct fuse_file_info *fi) {
-    DLOG(INFO) << "write " << path << " with size " << size << " and offset " << offset;
+    DLOG(ERROR) << "write " << path << " with size " << size << " and offset " << offset;
     if (size > UINT32_MAX) {
         /* Temporarily not support write > 4GB */
         DLOG(ERROR) << "write size > 4GB";
@@ -288,7 +289,7 @@ int sb_write(const char *path, const char *buf, size_t size, off_t offset, struc
 }
 
 int sb_truncate(const char *path, off_t off, struct fuse_file_info *fi) {
-    DLOG(INFO) << "truncate " << path << " with offset " << off;
+    DLOG(ERROR) << "truncate " << path << " with offset " << off;
     if (off > UINT32_MAX) {
         /* Temporarily not support truncate > 4GB */
         DLOG(ERROR) << "truncate offset > 4GB";
@@ -310,13 +311,13 @@ int sb_truncate(const char *path, off_t off, struct fuse_file_info *fi) {
 }
 
 int sb_statfs(const char *path, struct statvfs *stbuf) {
-    DLOG(INFO) << "statfs " << path;
+    DLOG(ERROR) << "statfs " << path;
     /* TODO: unimplemented, need block info */
     return 0;
 }
 
 int sb_fsync(const char *path, int datasync, struct fuse_file_info *fi) {
-    DLOG(INFO) << "fsync " << path;
+    DLOG(ERROR) << "fsync " << path;
     Inode inode;
     if (!fd_manager->get(fi->fh, &inode)) {
         DLOG(ERROR) << "invalid fd";

@@ -24,7 +24,7 @@ Inode PathResolver::resolve(const std::string &path) {
         string cache_path = cache_vec[i];
         path_cache_t::iterator iter = path_cache_.find(cache_path);
         if (iter != path_cache_.end()) {
-            DLOG(INFO) << "Found in cache: " << cache_path;
+            DLOG(ERROR) << "Found in cache: " << cache_path;
             iter->second.visited = true;  // Mark as visited.
             cur_inode = iter->second.inode;
             cur_path_index = i + 1;  // Now ready for next part of path.
@@ -67,7 +67,7 @@ void PathResolver::evict(size_t size) {
             clock_iter_ = next(clock_iter_);
         }
         cur_size += clock_iter_->first.size() + sizeof(path_cache_key_t) + sizeof(path_cache_val_t);
-        DLOG(INFO) << "Evicting " << clock_iter_->first << " cur evict size: " << cur_size
+        DLOG(ERROR) << "Evicting " << clock_iter_->first << " cur evict size: " << cur_size
                    << " max evict size: " << size;
         clock_iter_ = path_cache_.erase(clock_iter_);
     }

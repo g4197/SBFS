@@ -24,7 +24,7 @@ struct Position {
  */
 
 /* Only one, located at Block 0 of disk. */
-struct SuperBlock {
+struct alignas(kBlockSize) SuperBlock {
     uint32_t magic;
     uint32_t total_blocks;
     uint32_t inode_bitmap_blocks;
@@ -37,12 +37,12 @@ struct SuperBlock {
     }
 
     inline void print() const {
-        DLOG(INFO) << "total_blocks: " << total_blocks;
-        DLOG(INFO) << "inode_bitmap_blocks: " << inode_bitmap_blocks;
-        DLOG(INFO) << "inode_area_blocks: " << inode_area_blocks;
-        DLOG(INFO) << "data_bitmap_blocks: " << data_bitmap_blocks;
-        DLOG(INFO) << "data_area_blocks: " << data_area_blocks;
-        DLOG(INFO) << "root inode pos: " << root_inode_pos.block_id << " " << root_inode_pos.block_offset;
+        DLOG(ERROR) << "total_blocks: " << total_blocks;
+        DLOG(ERROR) << "inode_bitmap_blocks: " << inode_bitmap_blocks;
+        DLOG(ERROR) << "inode_area_blocks: " << inode_area_blocks;
+        DLOG(ERROR) << "data_bitmap_blocks: " << data_bitmap_blocks;
+        DLOG(ERROR) << "data_area_blocks: " << data_area_blocks;
+        DLOG(ERROR) << "root inode pos: " << root_inode_pos.block_id << " " << root_inode_pos.block_offset;
     }
     uint8_t padding[kBlockSize - 32];
 };
@@ -93,7 +93,7 @@ struct IndirectIndex2 {
 };
 
 /* Same to DiskInode in rCore */
-struct DiskInode {
+struct alignas(kBlockSize) DiskInode {
     /* Bytes for dir/file, use total_blocks to get block num. */
     uint32_t size;
     /* some metadata */

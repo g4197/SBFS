@@ -4,7 +4,7 @@
 #include "config.h"
 
 namespace sbfs {
-struct Block {
+struct alignas(kBlockSize) Block {
     uint8_t data[kBlockSize];
     /* TODO: maybe some helper functions */
 }; 

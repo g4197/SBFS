@@ -7,7 +7,7 @@ BlockDevice::BlockDevice(const char *path, const uint64_t size) :
     blk_cache_mgr_(kBlockCacheSize, this) {
     rt_assert(size % kBlockSize == 0, "size must be multiple of kBlockSize");
 
-    fd_ = open(path, O_DIRECT | O_RDWR | O_NOATIME);
+    fd_ = open(path, O_DIRECT | O_RDWR | O_NOATIME | O_CREAT, 0644);
     
     if (fd_ < 0) {
         DLOG(ERROR) << "open " << path << " failed";
