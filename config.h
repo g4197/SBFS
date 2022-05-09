@@ -20,12 +20,12 @@ inline constexpr uint64_t GB(uint64_t x) {
 }
 
 #ifndef NDEBUG
-inline void rt_assert(bool cond, const char *msg) {
-    if (!cond) {
-        DLOG(ERROR) << msg;
-        // exit(1); Don't exit for I don't know what FUSE will do after that.
-    }
-}
+#define rt_assert(cond, msg)    \
+    do {                        \
+        if (!(cond)) {          \
+            DLOG(ERROR) << msg; \
+        }                       \
+    } while (0)
 #else
 #define rt_assert(cond, msg) \
     do {                     \
