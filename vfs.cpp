@@ -58,6 +58,15 @@ int sb_mkdir(const char *path, mode_t mode) {
     disk_inode.mode |= mode & 0777;
 
     auto ret = parent_inode.create(child.c_str(), &disk_inode, &child_inode);
+
+    DirBlock dir_block;
+    auto dir_ret = child_inode.read_data(0, (uint8_t *)&dir_block, sizeof(DirBlock));
+    rt_assert(dir_ret != kFail, "read dir block failed");
+    for (size_t i = 0; i < kDirEntries; ++i) {
+        DirEntry &entry = dir_block.entries[i];
+        DLOG(WARNING) << "create check: " << entry.name << " " << entry.inode;
+    }
+
     rt_assert(ret != kFail, "mkdir failed");
     DLOG(WARNING) << "mkdir success";
     return 0;
@@ -88,7 +97,6 @@ int sb_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t offset
     for (uint32_t block_id = 0; block_id < tot_blocks; ++block_id) {
         auto dir_ret = inode.read_data(block_id * sizeof(DirBlock), (uint8_t *)&dir_block, sizeof(DirBlock));
         rt_assert(dir_ret != kFail, "read dir block failed");
-
         for (size_t i = 0; i < kDirEntries; ++i) {
             DirEntry &entry = dir_block.entries[i];
             if (entry.isValid()) {
@@ -153,8 +161,20 @@ int sb_rmdir(const char *path) {
     if (disk_inode.type != DiskInodeType::kDirectory) {
         return -ENOTDIR;
     }
-    if (disk_inode.size != 0) {
+
+    uint32_t tot_blocks = disk_inode.total_blocks(disk_inode.size);
+    if (tot_blocks > 1) {
         return -ENOTEMPTY;
+    }
+
+    DirBlock dir_block;
+    auto dir_ret = child_inode.read_data(0, (uint8_t *)&dir_block, sizeof(DirBlock));
+    rt_assert(dir_ret != kFail, "read dir block failed");
+    for (size_t i = 0; i < kDirEntries; ++i) {
+        DirEntry &entry = dir_block.entries[i];
+        if (entry.isValid() && strcmp(entry.name, ".") != 0 && strcmp(entry.name, "..") != 0) {
+            return -ENOTEMPTY;
+        }
     }
 
     /* It's an empty dir, delete it. */

@@ -13,6 +13,7 @@ DiskInode::DiskInode(DiskInodeType type_) {
     uid = getuid();
     gid = getgid();
     mode = type_ == kDirectory ? S_IFDIR : S_IFREG;
+    link_cnt = 1;
     // TODO update trivial metadata
 }
 

@@ -25,6 +25,7 @@ int Inode::write_inode(const DiskInode *buf) const {
 int Inode::read_data(uint32_t offset, uint8_t *buf, uint32_t size) const {
     DiskInode disk_inode;
     CHECK_RET(read_inode(&disk_inode));
+    DLOG(WARNING) << "Read data: " << offset << " " << size;
     int len = disk_inode.read_data(offset, buf, size, fs->device());
     if (len == kFail) return kFail;
     // TODO: update access time
@@ -38,6 +39,7 @@ int Inode::write_data(uint32_t offset, const uint8_t *buf, uint32_t size) const 
     if (disk_inode.size < offset + size) {
         disk_inode.resize(offset + size, fs->data_bitmap_, fs->device());
     }
+    DLOG(WARNING) << "Write data: " << offset << " " << size;
     int len = disk_inode.write_data(offset, buf, size, fs->device());
     if (len == kFail) return kFail;
     // TODO: update modify time
@@ -62,8 +64,8 @@ int Inode::create(const char *name, DiskInode *disk_inode, Inode *inode) const {
     if (disk_inode->type == kDirectory) {  // create . and ..
         DirEntry new_dir_entries[2] = { DirEntry(".", new_inode_id), DirEntry("..", fs->getDiskInodeId(pos)) };
         CHECK_RET(disk_inode->resize(disk_inode->size + sizeof(DirEntry) * 2, fs->data_bitmap_, fs->device()));
-        CHECK_RET(inode->write_data(disk_inode->size - sizeof(DirEntry) * 2, (uint8_t *)&new_dir_entries,
-                                    sizeof(DirEntry) * 2));
+        CHECK_RET(disk_inode->write_data(disk_inode->size - sizeof(DirEntry) * 2, (uint8_t *)&new_dir_entries,
+                                         sizeof(DirEntry) * 2, fs->device()));
     }
     // write new inode
     CHECK_RET(inode->write_inode(disk_inode));

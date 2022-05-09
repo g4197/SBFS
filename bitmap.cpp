@@ -10,12 +10,15 @@ using namespace sbfs;
  * @return int position
  */
 int leading_zero(uint64_t x) {
-    for (int i = 0; i < 64; i++) {
-        if ((x >> i) ^ 1) {
-            return i;
-        }
-    }
-    return -1;
+    /*
+     * doc of __builtin_clz:
+     * Returns the number of leading 0-bits in x,
+     * starting at the most significant bit position.
+     * If x is 0, the result is undefined.
+     */
+    if (x == 0) return 0;
+    if (x == UINT64_MAX) return -1;
+    return 64 - __builtin_clzll(x);
 }
 
 Bitmap::Bitmap(blk_id_t start_block_id, blk_id_t num_blocks, blk_id_t data_segment_offset)
