@@ -1,3 +1,4 @@
+fusermount -u build/disk
 mkdir build
 cd build
 cmake ..
