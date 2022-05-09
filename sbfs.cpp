@@ -22,8 +22,8 @@ SBFileSystem SBFileSystem::create(const char *path, const uint64_t size, uint32_
     fs.super_block_.root_inode_pos = Position::invalid();
 
     fs.super_block_.print();
-    DLOG(ERROR) << "unusable_blocks: "
-               << remaining_blocks - fs.super_block_.data_bitmap_blocks - fs.super_block_.data_area_blocks;
+    DLOG(WARNING) << "unusable_blocks: "
+                  << remaining_blocks - fs.super_block_.data_bitmap_blocks - fs.super_block_.data_area_blocks;
     /* stage 1: super block initialize, but root inode pos is invalid. */
     fs.device_->write(0, (Block *)&fs.super_block_);
 
@@ -80,6 +80,12 @@ void SBFileSystem::createRoot() {
     strcpy(root_dir_block.entries[1].name, "..");
     root_dir_block.entries[1].inode = root_inode_id;
     root_inode_data.size = 2 * sizeof(DirEntry);
+    root_inode_data.access_time = time(nullptr);
+    root_inode_data.modify_time = time(nullptr);
+    root_inode_data.create_time = time(nullptr);
+    root_inode_data.uid = getuid();
+    root_inode_data.gid = getgid();
+    root_inode_data.mode = S_IFDIR | 0755;
     root_inode_data.direct[0] = root_data_id;
 
     Inode inode{ getDiskInodePos(root_inode_id), this };
@@ -88,6 +94,8 @@ void SBFileSystem::createRoot() {
 
     /* set root inode pos */
     super_block_.root_inode_pos = getDiskInodePos(root_inode_id);
+    DLOG(WARNING) << "Create root finished";
+    super_block_.print();
     device_->write(0, (Block *)&super_block_);
 }
 

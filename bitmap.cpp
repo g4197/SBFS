@@ -28,7 +28,7 @@ blk_id_t Bitmap::alloc(BlockDevice *dev) {
     int slot_per_block = kBlockSize * 8;
     for (blk_id_t i = 0; i < num_blocks; i++) {
         if (dev->read(start_block_id + i, buf) != kSuccess) {
-            DLOG(ERROR) << "bitmap read " << start_block_id + i << " failed";
+            DLOG(WARNING) << "bitmap read " << start_block_id + i << " failed";
             return kFail;
         }
         auto sz = sizeof(uint64_t);
@@ -39,14 +39,14 @@ blk_id_t Bitmap::alloc(BlockDevice *dev) {
             if (k != -1) {
                 p[j] |= (1 << k);
                 if (dev->write(start_block_id + i, buf) != kSuccess) {
-                    DLOG(ERROR) << "bitmap write " << start_block_id + i << " failed";
+                    DLOG(WARNING) << "bitmap write " << start_block_id + i << " failed";
                     return kFail;
                 }
                 return i * slot_per_block + j * sz + k + data_segment_offset;
             }
         }
     }
-    DLOG(ERROR) << "bitmap alloc failed: no empty block found";
+    DLOG(WARNING) << "bitmap alloc failed: no empty block found";
     return kFail;
 }
 
@@ -58,14 +58,14 @@ int Bitmap::free(blk_id_t block_id, BlockDevice *dev) {
     int slot_id_in_bitmap = block_id % slot_per_block;
     rt_assert(block_id_in_bitmap < num_blocks, "block_id out of bitmap range");
     if (dev->read(start_block_id + block_id_in_bitmap, buf) != kSuccess) {
-        DLOG(ERROR) << "bitmap read " << start_block_id + block_id_in_bitmap << " failed";
+        DLOG(WARNING) << "bitmap read " << start_block_id + block_id_in_bitmap << " failed";
         return kFail;
     }
     auto sz = sizeof(uint64_t);
     auto p = (uint64_t *)(buf->data);
     p[slot_id_in_bitmap / sz] &= ~(1 << (slot_id_in_bitmap % sz));
     if (dev->write(start_block_id + block_id_in_bitmap, buf) != kSuccess) {
-        DLOG(ERROR) << "bitmap write " << start_block_id + block_id_in_bitmap << " failed";
+        DLOG(WARNING) << "bitmap write " << start_block_id + block_id_in_bitmap << " failed";
         return kFail;
     }
     return kSuccess;

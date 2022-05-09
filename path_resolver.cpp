@@ -6,25 +6,32 @@ PathResolver::PathResolver(SBFileSystem *fs, uint64_t path_cache_size)
     clock_iter_ = path_cache_.end();
 }
 
-PathResolver::~PathResolver() {
-}
+PathResolver::~PathResolver() {}
 
 Inode PathResolver::resolve(const std::string &path) {
+    DLOG(WARNING) << "Resolve path: " << path;
     if (path[0] != '/') {
-        return Inode();
+        DLOG(WARNING) << "Path must start with '/'";
+        return Inode::invalid();
     }
+    if (path == "/") {
+        return fs_->root();
+    }
+
     string path_no_both_slash = removeEndSlash(path).substr(1);
     vector<string> path_vec = split(path_no_both_slash, '/', false);
+
     vector<string> cache_vec = split(path_no_both_slash, '/', true);
     /* lookup cache first. */
     Inode cur_inode = fs_->root();
+    rt_assert(cur_inode.isValid(), "Root inode invalid?");
     int cur_path_index = 0;
 #ifdef PATH_CACHE
     for (int i = 0; i < cache_vec.size(); ++i) {
         string cache_path = cache_vec[i];
         path_cache_t::iterator iter = path_cache_.find(cache_path);
         if (iter != path_cache_.end()) {
-            DLOG(ERROR) << "Found in cache: " << cache_path;
+            DLOG(WARNING) << "Found in cache: " << cache_path;
             iter->second.visited = true;  // Mark as visited.
             cur_inode = iter->second.inode;
             cur_path_index = i + 1;  // Now ready for next part of path.
@@ -36,7 +43,7 @@ Inode PathResolver::resolve(const std::string &path) {
         string path_part = path_vec[i];
         Inode next_inode;
         if (cur_inode.find(path_part.c_str(), &next_inode) == kFail) {
-            return Inode();
+            return Inode::invalid();
         }
         cur_inode = next_inode;
 #ifdef PATH_CACHE
@@ -67,8 +74,8 @@ void PathResolver::evict(size_t size) {
             clock_iter_ = next(clock_iter_);
         }
         cur_size += clock_iter_->first.size() + sizeof(path_cache_key_t) + sizeof(path_cache_val_t);
-        DLOG(ERROR) << "Evicting " << clock_iter_->first << " cur evict size: " << cur_size
-                   << " max evict size: " << size;
+        DLOG(WARNING) << "Evicting " << clock_iter_->first << " cur evict size: " << cur_size
+                      << " max evict size: " << size;
         clock_iter_ = path_cache_.erase(clock_iter_);
     }
     cur_cache_size_ = cur_size;

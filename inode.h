@@ -18,6 +18,9 @@ struct Inode {
     /* Place of DiskInode */
     Position pos;
     SBFileSystem *fs;
+    static inline Inode invalid() {
+        return Inode{ Position::invalid(), nullptr };
+    }
     /*
      * Read "size" bytes from offset to "buf".
      * Metadata (access time etc.) should be updated.

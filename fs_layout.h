@@ -37,12 +37,12 @@ struct alignas(kBlockSize) SuperBlock {
     }
 
     inline void print() const {
-        DLOG(ERROR) << "total_blocks: " << total_blocks;
-        DLOG(ERROR) << "inode_bitmap_blocks: " << inode_bitmap_blocks;
-        DLOG(ERROR) << "inode_area_blocks: " << inode_area_blocks;
-        DLOG(ERROR) << "data_bitmap_blocks: " << data_bitmap_blocks;
-        DLOG(ERROR) << "data_area_blocks: " << data_area_blocks;
-        DLOG(ERROR) << "root inode pos: " << root_inode_pos.block_id << " " << root_inode_pos.block_offset;
+        DLOG(WARNING) << "total_blocks: " << total_blocks;
+        DLOG(WARNING) << "inode_bitmap_blocks: " << inode_bitmap_blocks;
+        DLOG(WARNING) << "inode_area_blocks: " << inode_area_blocks;
+        DLOG(WARNING) << "data_bitmap_blocks: " << data_bitmap_blocks;
+        DLOG(WARNING) << "data_area_blocks: " << data_area_blocks;
+        DLOG(WARNING) << "root inode pos: " << root_inode_pos.block_id << " " << root_inode_pos.block_offset;
     }
     uint8_t padding[kBlockSize - 32];
 };
@@ -161,6 +161,17 @@ struct alignas(kBlockSize) DiskInode {
      * @return int kSuccess on success, kFail on failure
      */
     int sync_data(BlockDevice *dev, bool indirect = false);
+
+    inline void print() {
+        DLOG(WARNING) << "size: " << size;
+        DLOG(WARNING) << "access_time: " << access_time;
+        DLOG(WARNING) << "create_time: " << create_time;
+        DLOG(WARNING) << "modify_time: " << modify_time;
+        DLOG(WARNING) << "uid: " << uid;
+        DLOG(WARNING) << "gid: " << gid;
+        DLOG(WARNING) << "link_cnt: " << link_cnt;
+        DLOG(WARNING) << "mode: " << mode;
+    }
 
 private:
     int clear(Bitmap *data_bitmap, BlockDevice *dev);
