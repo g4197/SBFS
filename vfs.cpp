@@ -25,7 +25,7 @@ void splitFromLastSlash(string &path, string &parent, string &child) {
     }
 }
 
-void sb_init(const char *path, const uint64_t size, bool is_open) {
+void init_vfs(const char *path, const uint64_t size, bool is_open) {
     sbfs = (SBFileSystem *)malloc(sizeof(SBFileSystem));
     if (is_open) {
         *sbfs = SBFileSystem::create(path, size, kFSDataBlocks, kInodeBitmapBlocks);
