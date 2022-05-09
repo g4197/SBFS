@@ -32,7 +32,7 @@ int BlockDevice::read(blk_id_t block_id, Block *buf) {
 
     if (blk_cache_mgr_.get(block_id, buf) == kFail) {
         if (pread(fd_, buf, kBlockSize, block_id * kBlockSize) != kBlockSize) {
-            DLOG(ERROR) << "pread " << block_id << " failed";
+            DLOG(ERROR) << "pread " << block_id << " failed " << strerror(errno);
             return kFail;
         }
         blk_cache_mgr_.upsert(block_id, buf);
@@ -56,7 +56,7 @@ int BlockDevice::write_to_disk(blk_id_t block_id, const Block *buf) {
     rt_assert(buf != nullptr, "buf is nullptr");
 
     if (pwrite(fd_, buf, kBlockSize, block_id * kBlockSize) != kBlockSize) {
-        DLOG(ERROR) << "pwrite " << block_id << " failed";
+        DLOG(ERROR) << "pwrite " << block_id << " failed " << strerror(errno);
         return kFail;
     }
     return kSuccess;
