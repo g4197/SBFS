@@ -36,6 +36,7 @@ void init_vfs(const char *path, const uint64_t size, bool is_open) {
         *sbfs = SBFileSystem::open(path);
     }
     path_resolver = new PathResolver(sbfs, kPathCacheSize);
+    fd_manager = new FDManager();
 }
 
 void sb_destroy(void *private_data) {

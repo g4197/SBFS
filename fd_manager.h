@@ -48,7 +48,7 @@ public:
 
     void deltaRefCnt(const Inode &inode, int delta) {
         if (reference_count.find(inode) == reference_count.end()) {
-            reference_count[inode] = delta;
+            reference_count.insert(std::make_pair(inode, (uint64_t)delta));
         } else {
             reference_count[inode] += delta;
         }
