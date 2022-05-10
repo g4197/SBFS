@@ -473,18 +473,18 @@ int DiskInode::read_data(uint32_t offset, uint8_t *buf, uint32_t len, BlockDevic
     int l = offset, r = offset + len;
     int lid = l / kBlockSize, rid = r / kBlockSize;
     int loff = l % kBlockSize, roff = r % kBlockSize;
-    int lblk = block_id(lid, dev);
-    int rblk = block_id(rid, dev);
-    rt_assert(lblk <= rblk, "lblk should be <= rblk");
+    rt_assert(lid <= rid, "lid should be <= rid");
     auto data = new Block;
 
-    if (lblk == rblk) {
-        if (dev->read(lblk, data) != kSuccess) {
+    if (lid == rid) {
+        auto blk = block_id(lid);
+        if (dev->read(blk, data) != kSuccess) {
             DLOG(WARNING) << "read block " << lblk << " failed at read_data";
             return kFail;
         }
         memcpy(buf, data->data + loff, roff - loff);
     } else {
+        auto lblk = block_id(lid);
         int bufoffset = 0;
         if (dev->read(lblk, data) != kSuccess) {
             DLOG(WARNING) << "read block " << lblk << " failed at read_data";
@@ -492,8 +492,9 @@ int DiskInode::read_data(uint32_t offset, uint8_t *buf, uint32_t len, BlockDevic
         }
         memcpy(buf, data->data + loff, kBlockSize - loff);
         bufoffset += kBlockSize - loff;
-        for (int i = lblk + 1; i < rblk; ++i) {
-            if (dev->read(i, data) != kSuccess) {
+        for (int i = lid + 1; i < rid; ++i) {
+            auto blk = block_id(i);
+            if (dev->read(blk, data) != kSuccess) {
                 DLOG(WARNING) << "read block " << i << " failed at read_data";
                 return kFail;
             }
@@ -501,6 +502,7 @@ int DiskInode::read_data(uint32_t offset, uint8_t *buf, uint32_t len, BlockDevic
             bufoffset += kBlockSize;
         }
         if (roff > 0) {
+            auto rblk = block_id(rid);
             if (dev->read(rblk, data) != kSuccess) {
                 DLOG(WARNING) << "read block " << rblk << " failed at read_data";
                 return kFail;
@@ -526,10 +528,10 @@ int DiskInode::write_data(uint32_t offset, const uint8_t *buf, uint32_t len, Blo
     int l = offset, r = offset + len;
     int lid = l / kBlockSize, rid = r / kBlockSize;
     int loff = l % kBlockSize, roff = r % kBlockSize;
-    int lblk = block_id(lid, dev), rblk = block_id(rid, dev);
-    rt_assert(lblk <= rblk, "lblk should be <= rblk");
+    rt_assert(lid <= rid, "lid should be <= rid");
     auto data = new Block;
-    if (lblk == rblk) {
+    if (lid == rid) {
+        auto lblk = block_id(lid);
         if (dev->read(lblk, data) != kSuccess) {
             DLOG(WARNING) << "read block " << lblk << " failed at write_data";
             return kFail;
@@ -541,6 +543,7 @@ int DiskInode::write_data(uint32_t offset, const uint8_t *buf, uint32_t len, Blo
         }
     } else {
         int bufoffset = 0;
+        auto lblk = block_id(lid);
         if (dev->read(lblk, data) != kSuccess) {
             DLOG(WARNING) << "read block " << lblk << " failed at write_data";
             return kFail;
@@ -552,15 +555,17 @@ int DiskInode::write_data(uint32_t offset, const uint8_t *buf, uint32_t len, Blo
             return kFail;
         }
 
-        for (int i = lblk + 1; i < rblk; ++i) {
+        for (int i = lid + 1; i < rid; ++i) {
             memcpy(data->data, buf + bufoffset, kBlockSize);
             bufoffset += kBlockSize;
-            if (dev->write(i, data) != kSuccess) {
+            auto blk = block_id(i);
+            if (dev->write(blk, data) != kSuccess) {
                 DLOG(WARNING) << "write block " << i << " failed at write_data";
                 return kFail;
             }
         }
         if (roff > 0) {
+            auto rblk = block_id(rid);
             if (dev->read(rblk, data) != kSuccess) {
                 DLOG(WARNING) << "read block " << rblk << " failed at write_data";
                 return kFail;
