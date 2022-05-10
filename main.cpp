@@ -49,6 +49,9 @@ int main(int argc, char **argv) {
     sb_op.write = sb_write;
     sb_op.truncate = sb_truncate;
     sb_op.fsync = sb_fsync;
+    sb_op.utimens = sb_utimens;
+    sb_op.chmod = sb_chmod;
+    sb_op.chown = sb_chown;
 
     DLOG(WARNING) << "start fuse_main";
     fuse_main(args.argc, args.argv, &sb_op, nullptr);

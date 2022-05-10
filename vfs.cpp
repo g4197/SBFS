@@ -2,7 +2,6 @@
 
 #include <glog/logging.h>
 
-#include <mutex>
 #include <string>
 
 #include "inode.h"
@@ -12,7 +11,6 @@ namespace vfs {
 SBFileSystem *sbfs;
 PathResolver *path_resolver;
 FDManager *fd_manager;
-std::mutex mutex;
 
 using std::string;
 
@@ -39,6 +37,29 @@ void init_vfs(const char *path, const uint64_t size, bool is_open) {
     fd_manager = new FDManager();
 }
 
+int sb_rmw_diskinode(const char *path, struct fuse_file_info *fi, function<int(DiskInode &)> func) {
+    DLOG(WARNING) << "read-modify-write diskinode " << path;
+    Inode inode;
+    if (!fi || !fi->fh || !fd_manager->get(fi->fh, &inode)) {
+        /* not open, resolve path. */
+        inode = path_resolver->resolve(string(path));
+    }
+    if (!inode.isValid()) {
+        return -ENOENT;
+    }
+    DiskInode disk_inode;
+    if (inode.read_inode(&disk_inode) == kFail) {
+        return -EIO;
+    }
+    int ret = func(disk_inode);
+    if (ret != kSuccess) return ret;
+
+    if (inode.write_inode(&disk_inode) == kFail) {
+        return -EIO;
+    }
+    return 0;
+}
+
 void sb_destroy(void *private_data) {
     delete path_resolver;
     delete sbfs;
@@ -59,13 +80,6 @@ int sb_mkdir(const char *path, mode_t mode) {
 
     auto ret = parent_inode.create(child.c_str(), &disk_inode, &child_inode);
 
-    DirBlock dir_block;
-    auto dir_ret = child_inode.read_data(0, (uint8_t *)&dir_block, sizeof(DirBlock));
-    rt_assert(dir_ret != kFail, "read dir block failed");
-    for (auto &entry : dir_block.entries) {
-        DLOG(WARNING) << "create check: " << entry.name << " " << entry.inode;
-    }
-
     rt_assert(ret != kFail, "mkdir failed");
     DLOG(WARNING) << "mkdir success";
     return 0;
@@ -73,7 +87,6 @@ int sb_mkdir(const char *path, mode_t mode) {
 
 int sb_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t offset, fuse_file_info *fi,
                fuse_readdir_flags flags) {
-    auto guard = lock_guard(mutex);
     DLOG(WARNING) << "readdir " << path << " with offset " << offset;
     /* resolve path */
     string dir = string(path);
@@ -106,36 +119,21 @@ int sb_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t offset
 }
 
 int sb_getattr(const char *path, struct stat *stbuf, fuse_file_info *fi) {
-    auto guard = std::lock_guard(mutex);
-    DLOG(WARNING) << "getattr " << path << " fi: " << fi;
-    Inode inode;
-    if (!fi || !fi->fh || !fd_manager->get(fi->fh, &inode)) {
-        /* not open, resolve path. */
-        inode = path_resolver->resolve(string(path));
-    }
-    DLOG(WARNING) << "Resolve path finished, valid: " << inode.isValid();
-    if (!inode.isValid()) {
-        return -ENOENT;
-    }
-    /* read inode */
-    DiskInode disk_inode(DiskInodeType::kDirectory);
-    auto inode_ret = inode.read_inode(&disk_inode);
-    rt_assert(inode_ret != kFail, "read inode failed");
+    return sb_rmw_diskinode(path, fi, [&](DiskInode &disk_inode) {
+        stbuf->st_mode = disk_inode.mode;
+        stbuf->st_atime = disk_inode.access_time;
+        stbuf->st_mtime = disk_inode.modify_time;
+        stbuf->st_ctime = disk_inode.change_time;
+        stbuf->st_size = disk_inode.size;
+        stbuf->st_mode = disk_inode.mode;
+        stbuf->st_nlink = disk_inode.link_cnt;
+        stbuf->st_uid = disk_inode.uid;
+        stbuf->st_gid = disk_inode.gid;
+        stbuf->st_blocks = disk_inode.total_blocks(disk_inode.size);
+        stbuf->st_blksize = kBlockSize;
 
-    /* fill stats */
-    DLOG(WARNING) << "fill stats";
-    stbuf->st_atime = disk_inode.access_time;
-    stbuf->st_mtime = disk_inode.modify_time;
-    stbuf->st_ctime = disk_inode.create_time;
-    stbuf->st_size = disk_inode.size;
-    stbuf->st_mode = disk_inode.mode;
-    stbuf->st_nlink = disk_inode.link_cnt;
-    stbuf->st_uid = disk_inode.uid;
-    stbuf->st_gid = disk_inode.gid;
-    stbuf->st_blocks = disk_inode.total_blocks(disk_inode.size);
-    stbuf->st_blksize = kBlockSize;
-    DLOG(WARNING) << "getattr " << path << " success";
-    return 0;
+        return kSuccess;
+    });
 }
 
 int sb_rmdir(const char *path) {
@@ -233,6 +231,8 @@ int sb_rename(const char *oldpath, const char *newpath, unsigned int flags) {
 
     string new_dir = string(newpath), new_parent, new_child;
     splitFromLastSlash(new_dir, new_parent, new_child);
+    DLOG(WARNING) << "new_parent: " << new_parent << " new_child: " << new_child;
+    DLOG(WARNING) << "old_parent: " << old_parent << " old_child: " << old_child;
     Inode new_parent_inode = path_resolver->resolve(new_parent), new_child_inode;
 
     int unlink_ret = old_parent_inode.unlink(old_child.c_str(), &old_child_inode);
@@ -355,6 +355,33 @@ int sb_fsync(const char *path, int datasync, struct fuse_file_info *fi) {
         return -EIO;
     }
     return 0;
+}
+
+int sb_utimens(const char *path, const struct timespec tv[2], struct fuse_file_info *fi) {
+    DLOG(WARNING) << "utimens " << path;
+    return sb_rmw_diskinode(path, fi, [=](DiskInode &disk_inode) {
+        LOG(WARNING) << "tv " << tv[0].tv_sec << " " << tv[0].tv_nsec << " " << tv[1].tv_sec << " " << tv[1].tv_nsec;
+        disk_inode.access_time = tv[0].tv_sec + tv[0].tv_nsec / 1000000000.0;
+        disk_inode.modify_time = tv[1].tv_sec + tv[1].tv_nsec / 1000000000.0;
+        return kSuccess;
+    });
+}
+
+int sb_chmod(const char *path, mode_t mode, struct fuse_file_info *fi) {
+    DLOG(WARNING) << "chmod " << path;
+    return sb_rmw_diskinode(path, fi, [=](DiskInode &disk_inode) {
+        disk_inode.mode = mode;
+        return kSuccess;
+    });
+}
+
+int sb_chown(const char *path, uid_t uid, gid_t gid, struct fuse_file_info *fi) {
+    DLOG(WARNING) << "chown " << path;
+    return sb_rmw_diskinode(path, fi, [=](DiskInode &disk_inode) {
+        disk_inode.uid = uid;
+        disk_inode.gid = gid;
+        return kSuccess;
+    });
 }
 
 }  // namespace vfs

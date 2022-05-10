@@ -98,7 +98,7 @@ struct alignas(kBlockSize) DiskInode {
     uint32_t size;
     /* some metadata */
     uint32_t access_time;
-    uint32_t create_time;
+    uint32_t change_time;
     uint32_t modify_time;
 
     uint16_t uid;       // Owner user id (may be used in ext tasks)
@@ -165,7 +165,7 @@ struct alignas(kBlockSize) DiskInode {
     inline void print() {
         DLOG(WARNING) << "size: " << size;
         DLOG(WARNING) << "access_time: " << access_time;
-        DLOG(WARNING) << "create_time: " << create_time;
+        DLOG(WARNING) << "change_time: " << change_time;
         DLOG(WARNING) << "modify_time: " << modify_time;
         DLOG(WARNING) << "uid: " << uid;
         DLOG(WARNING) << "gid: " << gid;

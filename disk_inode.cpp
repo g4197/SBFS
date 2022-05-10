@@ -9,7 +9,7 @@ DiskInode::DiskInode(DiskInodeType type_) {
     type = type_;
     access_time = time(nullptr);
     modify_time = time(nullptr);
-    create_time = time(nullptr);
+    change_time = time(nullptr);
     uid = getuid();
     gid = getgid();
     mode = type_ == kDirectory ? S_IFDIR : S_IFREG;
