@@ -15,6 +15,8 @@ static struct options {
 static const struct fuse_opt option_spec[] = { OPTION("--disk_path=%s", disk_path), OPTION("--open=%d", is_open),
                                                FUSE_OPT_END };
 
+fuse_operations sb_op;
+
 int main(int argc, char **argv) {
     /* Init glog */
     FLAGS_log_dir = "/tmp/log";
@@ -33,7 +35,6 @@ int main(int argc, char **argv) {
     DLOG(WARNING) << "Disk path: " << opt.disk_path << ", is open: " << opt.is_open;
     init_vfs(opt.disk_path, kDiskSize, opt.is_open);
 
-    fuse_operations sb_op;
     sb_op.readdir = sb_readdir;
     sb_op.getattr = sb_getattr;
     sb_op.mkdir = sb_mkdir;
