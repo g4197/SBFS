@@ -20,11 +20,11 @@ inline constexpr uint64_t GB(uint64_t x) {
 }
 
 #ifndef NDEBUG
-#define rt_assert(cond, msg)    \
-    do {                        \
-        if (!(cond)) {          \
-            DLOG(ERROR) << msg; \
-        }                       \
+#define rt_assert(cond, msg)      \
+    do {                          \
+        if (!(cond)) {            \
+            DLOG(ERROR) << (msg); \
+        }                         \
     } while (0)
 #else
 #define rt_assert(cond, msg) \

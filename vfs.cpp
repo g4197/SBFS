@@ -62,8 +62,7 @@ int sb_mkdir(const char *path, mode_t mode) {
     DirBlock dir_block;
     auto dir_ret = child_inode.read_data(0, (uint8_t *)&dir_block, sizeof(DirBlock));
     rt_assert(dir_ret != kFail, "read dir block failed");
-    for (size_t i = 0; i < kDirEntries; ++i) {
-        DirEntry &entry = dir_block.entries[i];
+    for (auto &entry : dir_block.entries) {
         DLOG(WARNING) << "create check: " << entry.name << " " << entry.inode;
     }
 
@@ -97,8 +96,7 @@ int sb_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t offset
     for (uint32_t block_id = 0; block_id < tot_blocks; ++block_id) {
         auto dir_ret = inode.read_data(block_id * sizeof(DirBlock), (uint8_t *)&dir_block, sizeof(DirBlock));
         rt_assert(dir_ret != kFail, "read dir block failed");
-        for (size_t i = 0; i < kDirEntries; ++i) {
-            DirEntry &entry = dir_block.entries[i];
+        for (auto &entry : dir_block.entries) {
             if (entry.isValid()) {
                 filler(buf, entry.name, nullptr, 0, (fuse_fill_dir_flags)0);
             }
@@ -170,8 +168,7 @@ int sb_rmdir(const char *path) {
     DirBlock dir_block;
     auto dir_ret = child_inode.read_data(0, (uint8_t *)&dir_block, sizeof(DirBlock));
     rt_assert(dir_ret != kFail, "read dir block failed");
-    for (size_t i = 0; i < kDirEntries; ++i) {
-        DirEntry &entry = dir_block.entries[i];
+    for (auto &entry : dir_block.entries) {
         if (entry.isValid() && strcmp(entry.name, ".") != 0 && strcmp(entry.name, "..") != 0) {
             return -ENOTEMPTY;
         }
@@ -360,5 +357,5 @@ int sb_fsync(const char *path, int datasync, struct fuse_file_info *fi) {
     return 0;
 }
 
-};  // namespace vfs
-};  // namespace sbfs
+}  // namespace vfs
+}  // namespace sbfs
