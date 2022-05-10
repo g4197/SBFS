@@ -525,6 +525,7 @@ int DiskInode::write_data(uint32_t offset, const uint8_t *buf, uint32_t len, Blo
     if (offset + len >= size) {
         len = size - offset;
     }
+    DLOG(INFO) << "write data " << offset << " " << len;
     int l = offset, r = offset + len;
     int lid = l / kBlockSize, rid = r / kBlockSize;
     int loff = l % kBlockSize, roff = r % kBlockSize;

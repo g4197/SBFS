@@ -119,7 +119,7 @@ int Inode::remove(const char *name) const {
                 CHECK_RET(del_inode.read_inode(&del_disk_inode));
                 del_disk_inode.resize(0, del_inode.fs->data_bitmap_, del_inode.fs->device());
                 CHECK_RET(fs->free_inode(dir_blk.entries[j].inode));
-                if (i != tot_blocks - 1 && j != kDirEntries - 1) {  // move the last entry here
+                if (i != tot_blocks - 1 || j != kDirEntries - 1) {  // move the last entry here
                     DirEntry last_entry;
                     CHECK_RET(disk_inode.read_data(disk_inode.size - sizeof(DirEntry), (uint8_t *)&last_entry,
                                                    sizeof(DirEntry), fs->device()));
@@ -190,7 +190,7 @@ int Inode::unlink(const char *name, Inode *inode) const {
             for (auto j = 0; j < kDirEntries; ++j) {
                 if (strcmp(dir_blk.entries[j].name, name) == 0) {
                     *inode = { .pos = fs->getDiskInodePos(dir_blk.entries[j].inode), .fs = fs };
-                    if (i != tot_blocks - 1 && j != kDirEntries - 1) {  // move the last entry here
+                    if (i != tot_blocks - 1 || j != kDirEntries - 1) {  // move the last entry here
                         DirEntry last_entry;
                         CHECK_RET(disk_inode.read_data(disk_inode.size - sizeof(DirEntry), (uint8_t *)&last_entry,
                                                        sizeof(DirEntry), fs->device()));
