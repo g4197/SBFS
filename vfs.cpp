@@ -185,7 +185,7 @@ int sb_rmdir(const char *path) {
 }
 
 int sb_create(const char *path, mode_t mode, struct fuse_file_info *fi) {
-    DLOG(WARNING) << "create " << path << " with mode " << mode;
+    DLOG(WARNING) << "create " << path << " with mode " << mode << " and fi " << fi;
     /* resolve path and create inode */
     string dir = string(path), parent, child;
     splitFromLastSlash(dir, parent, child);
@@ -198,7 +198,8 @@ int sb_create(const char *path, mode_t mode, struct fuse_file_info *fi) {
     disk_inode.mode |= mode & 0777;
     /* TODO: parent not a directory, file exists... */
     parent_inode.create(child.c_str(), &disk_inode, &child_inode);
-    return 0;
+    /* create a file then open it. */
+    return sb_open(path, fi);
 }
 
 int sb_unlink(const char *path) {
@@ -299,7 +300,7 @@ int sb_read(const char *path, char *buf, size_t size, off_t offset, struct fuse_
 }
 
 int sb_write(const char *path, const char *buf, size_t size, off_t offset, struct fuse_file_info *fi) {
-    DLOG(WARNING) << "write " << path << " with size " << size << " and offset " << offset;
+    DLOG(WARNING) << "write " << path << " with size " << size << " and offset " << offset << " and fh " << fi->fh;
     if (size > UINT32_MAX) {
         /* Temporarily not support write > 4GB */
         DLOG(WARNING) << "write size > 4GB";

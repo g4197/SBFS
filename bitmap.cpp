@@ -16,9 +16,9 @@ int leading_zero(uint64_t x) {
      * starting at the most significant bit position.
      * If x is 0, the result is undefined.
      */
-    if (x == 0) return 0;
     if (x == UINT64_MAX) return -1;
-    return 64 - __builtin_clzll(x);
+    uint64_t not_x = ~x;
+    return __builtin_ctzll(not_x);
 }
 
 Bitmap::Bitmap(blk_id_t start_block_id, blk_id_t num_blocks, blk_id_t data_segment_offset)
