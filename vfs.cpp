@@ -289,11 +289,14 @@ int sb_read(const char *path, char *buf, size_t size, off_t offset, struct fuse_
         DLOG(WARNING) << "invalid fd";
         return -EBADF;
     }
-    if (inode.read_data(offset, (uint8_t *)buf, size) == kFail) {
+    int ret = 0;
+    if ((ret = inode.read_data(offset, (uint8_t *)buf, size)) == kFail) {
         DLOG(WARNING) << "read data failed";
         return -EIO;
     }
-    return size;
+    DLOG(WARNING) << "read " << size << " bytes"
+                  << " actually " << ret << " bytes";
+    return ret;
 }
 
 int sb_write(const char *path, const char *buf, size_t size, off_t offset, struct fuse_file_info *fi) {
@@ -308,11 +311,13 @@ int sb_write(const char *path, const char *buf, size_t size, off_t offset, struc
         DLOG(WARNING) << "invalid fd";
         return -EBADF;
     }
-    if (inode.write_data(offset, (uint8_t *)buf, size) == kFail) {
+    int ret = 0;
+    if ((ret = inode.write_data(offset, (uint8_t *)buf, size)) == kFail) {
         DLOG(WARNING) << "write data failed";
         return -EIO;
     }
-    return size;
+    DLOG(WARNING) << "write " << size << " bytes to " << path << " at offset " << offset << " actually: " << ret;
+    return ret;
 }
 
 int sb_truncate(const char *path, off_t off, struct fuse_file_info *fi) {

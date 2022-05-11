@@ -42,7 +42,7 @@ blk_id_t Bitmap::alloc(BlockDevice *dev) {
             DLOG(WARNING) << "Allocated K is " << k;
             // int k = -1;
             if (k != -1) {
-                p[j] |= (1 << k);
+                p[j] |= (1ul << k);
                 if (dev->write(start_block_id + i, buf) != kSuccess) {
                     DLOG(WARNING) << "bitmap write " << start_block_id + i << " failed";
                     return kFail;
