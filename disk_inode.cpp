@@ -441,6 +441,7 @@ int DiskInode::clear(Bitmap *data_bitmap, BlockDevice *dev) {
             DLOG(WARNING) << "free indirect1 bitmap failed at clear";
             return kFail;
         }
+        delete ind;
     }
     if (indirect2 != 0 && data_blks > INODE_DIRECT_COUNT + INODE_INDIRECT_COUNT) {
         auto ind2 = new Block;
@@ -475,6 +476,7 @@ int DiskInode::clear(Bitmap *data_bitmap, BlockDevice *dev) {
             DLOG(WARNING) << "free indirect2 bitmap failed at clear";
             return kFail;
         }
+        delete ind2;
     }
     // todo release inode, but we don't have the access here
     // api change required
@@ -650,6 +652,7 @@ int DiskInode::sync_data(BlockDevice *dev, bool indirect) {
                 DLOG(WARNING) << "sync block " << indirect2 << " failed at sync_data";
                 return kFail;
             }
+            delete buf;
         }
     }
     return kSuccess;

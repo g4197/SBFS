@@ -47,10 +47,12 @@ blk_id_t Bitmap::alloc(BlockDevice *dev) {
                     DLOG(WARNING) << "bitmap write " << start_block_id + i << " failed";
                     return kFail;
                 }
+                delete buf;
                 return i * slot_per_block + j * sz + k + data_segment_offset;
             }
         }
     }
+    delete buf;
     DLOG(WARNING) << "bitmap alloc failed: no empty block found";
     return kFail;
 }
@@ -68,10 +70,11 @@ int Bitmap::free(blk_id_t block_id, BlockDevice *dev) {
     }
     auto sz = sizeof(uint64_t);
     auto p = (uint64_t *)(buf->data);
-    p[slot_id_in_bitmap / sz] &= ~(1 << (slot_id_in_bitmap % sz));
+    p[slot_id_in_bitmap / sz] &= ~(1ul << (slot_id_in_bitmap % sz));
     if (dev->write(start_block_id + block_id_in_bitmap, buf) != kSuccess) {
         DLOG(WARNING) << "bitmap write " << start_block_id + block_id_in_bitmap << " failed";
         return kFail;
     }
+    delete buf;
     return kSuccess;
 }
