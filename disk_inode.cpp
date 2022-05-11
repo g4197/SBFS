@@ -76,13 +76,11 @@ uint32_t DiskInode::total_blocks(uint32_t size) {
     {
         return data;
     }
-    data -= INODE_DIRECT_COUNT;
-    if (data < INODE_INDIRECT_COUNT)  // need indirect1
+    if (data - INODE_DIRECT_COUNT < INODE_INDIRECT_COUNT)  // need indirect1
     {
         return data + 1;
     }
-    data -= INODE_INDIRECT_COUNT;
-    return data + 1 + (data / INODE_INDIRECT_COUNT);  // need indirect2
+    return data + 1 + ((data - INODE_DIRECT_COUNT - INODE_INDIRECT_COUNT) / INODE_INDIRECT_COUNT);  // need indirect2
 }
 
 // todo: write back all at once to reduce overhead
@@ -383,6 +381,9 @@ int DiskInode::resize(uint32_t new_size, Bitmap *data_bitmap, BlockDevice *dev) 
     auto new_data_blocks = data_blocks(size);
     auto old_blocks = total_blocks(old_size);
     auto new_blocks = total_blocks(size);
+    DLOG(WARNING) << "old_size: " << old_size << " new_size: " << new_size << " old_blocks: " << old_blocks
+                  << " new_blocks: " << new_blocks << " old_data_blocks: " << old_data_blocks
+                  << " new_data_blocks: " << new_data_blocks;
     if (old_blocks == new_blocks) return kSuccess;
     if (old_blocks > new_blocks) {
         return decrease(old_blocks, old_data_blocks, new_blocks, new_data_blocks, dev, data_bitmap);
@@ -518,6 +519,7 @@ int DiskInode::read_data(uint32_t offset, uint8_t *buf, uint32_t len, BlockDevic
 int DiskInode::write_data(uint32_t offset, const uint8_t *buf, uint32_t len, BlockDevice *dev) {
     update_meta();
     if (len == 0) return kSuccess;
+    DLOG(WARNING) << "write data offset " << offset << " len " << len;
     if (offset > size) {
         DLOG(WARNING) << "write data out of range";
         return kFail;
