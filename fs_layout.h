@@ -93,7 +93,7 @@ struct IndirectIndex2 {
 };
 
 /* Same to DiskInode in rCore */
-struct alignas(kBlockSize) DiskInode {
+struct DiskInode {
     /* Bytes for dir/file, use total_blocks to get block num. */
     uint32_t size;
     /* some metadata */

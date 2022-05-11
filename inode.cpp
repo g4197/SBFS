@@ -2,7 +2,8 @@
 
 #include "fs.h"
 
-#define CHECK_RET(ret) \
+#define CHECK_RET(ret)  \
+    DLOG(INFO) << #ret; \
     if (ret == kFail) return kFail
 
 namespace sbfs {

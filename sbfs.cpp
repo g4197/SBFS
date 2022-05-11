@@ -14,7 +14,7 @@ SBFileSystem SBFileSystem::create(const char *path, const uint64_t size, uint32_
     fs.super_block_.magic = kFSMagic;
     fs.super_block_.total_blocks = total_blocks;
     fs.super_block_.inode_bitmap_blocks = inode_bitmap_blocks;
-    fs.super_block_.inode_area_blocks = inode_bitmap_blocks * 8 * kInodesInABlock;
+    fs.super_block_.inode_area_blocks = inode_bitmap_blocks * 8 * kBlockSize / kInodesInABlock;
     uint32_t remaining_blocks = total_blocks - inode_bitmap_blocks - fs.super_block_.inode_area_blocks;
     /* 1 data bitmap <-> 8 * kBlockSize data block */
     fs.super_block_.data_bitmap_blocks = remaining_blocks / (1 + 8 * kBlockSize);
@@ -109,6 +109,7 @@ Position SBFileSystem::getDiskInodePos(uint32_t inode_id) {
     Position pos;
     pos.block_id = inode_area_start_block_ + inode_id / kInodesInABlock;
     pos.block_offset = (inode_id % kInodesInABlock) * sizeof(DiskInode);
+    DLOG(INFO) << "inode_id: " << inode_id << " pos: " << pos.block_id << " " << pos.block_offset;
     return pos;
 }
 
