@@ -38,7 +38,7 @@ blk_id_t Bitmap::alloc(BlockDevice *dev) {
         auto p = (uint64_t *)(buf->data);
         for (int j = 0; j < kBlockSize / sz; j++) {
             int k = leading_zero(p[j]);
-            DLOG(WARNING) << "bitmap read " << start_block_id + i << " " << j << " " << p[j];
+            DLOG(WARNING) << "bitmap read " << start_block_id << " " << i << " " << j << " " << p[j];
             DLOG(WARNING) << "Allocated K is " << k;
             // int k = -1;
             if (k != -1) {
@@ -48,7 +48,8 @@ blk_id_t Bitmap::alloc(BlockDevice *dev) {
                     return kFail;
                 }
                 delete buf;
-                return i * slot_per_block + j * sz + k + data_segment_offset;
+                DLOG(WARNING) << "ret = " << i * slot_per_block + j * sz + k << " + " << data_segment_offset;
+                return i * slot_per_block + j * sz * 8 + k + data_segment_offset;
             }
         }
     }

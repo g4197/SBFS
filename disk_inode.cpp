@@ -122,7 +122,7 @@ int DiskInode::increase(int old_blocks, int old_data_blocks, int new_blocks, int
     for (int i = max(old_data_blocks, INODE_DIRECT_COUNT);
          i < min(new_data_blocks, INODE_DIRECT_COUNT + INODE_INDIRECT_COUNT); i++) {
         blk_id_t new_blk = data_bitmap->alloc(dev);
-        DLOG(WARNING) << "alloc indrect1 " << new_blk;
+        DLOG(WARNING) << "alloc indirect1 " << new_blk;
         if (new_blk == kFail) {
             DLOG(WARNING) << "alloc data bitmap failed at increase 2";
             return kFail;
