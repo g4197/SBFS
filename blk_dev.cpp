@@ -27,7 +27,7 @@ BlockDevice::~BlockDevice() {
 }
 
 int BlockDevice::read(blk_id_t block_id, Block *buf) {
-    DLOG(WARNING) << "read block " << block_id << " to " << buf;
+    DLOG(INFO) << "read block " << block_id << " to " << buf;
     rt_assert(block_id < num_data_blocks_, "block_id out of range");
     rt_assert(buf != nullptr, "buf is nullptr");
 
@@ -42,7 +42,7 @@ int BlockDevice::read(blk_id_t block_id, Block *buf) {
 }
 
 int BlockDevice::write(blk_id_t block_id, const Block *buf) {
-    DLOG(WARNING) << "write block " << block_id << " from " << buf;
+    DLOG(INFO) << "write block " << block_id << " from " << buf;
     rt_assert(block_id < num_data_blocks_, "block_id out of range");
     rt_assert(buf != nullptr, "buf is nullptr");
 
