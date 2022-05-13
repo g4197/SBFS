@@ -2,6 +2,7 @@
 
 #include <glog/logging.h>
 
+#include <mutex>
 #include <string>
 
 #include "inode.h"
@@ -11,6 +12,7 @@ namespace vfs {
 SBFileSystem *sbfs;
 PathResolver *path_resolver;
 FDManager *fd_manager;
+mutex mtx;
 
 using std::string;
 
@@ -61,11 +63,13 @@ int sb_rmw_diskinode(const char *path, struct fuse_file_info *fi, function<int(D
 }
 
 void sb_destroy(void *private_data) {
+    auto guard = lock_guard(mtx);
     delete path_resolver;
     delete sbfs;
 }
 
 int sb_mkdir(const char *path, mode_t mode) {
+    auto guard = lock_guard(mtx);
     DLOG(WARNING) << "mkdir " << path << " with mode " << mode;
     /* resolve path and create inode */
     string dir = string(path), parent, child;
@@ -87,6 +91,7 @@ int sb_mkdir(const char *path, mode_t mode) {
 
 int sb_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t offset, fuse_file_info *fi,
                fuse_readdir_flags flags) {
+    auto guard = lock_guard(mtx);
     DLOG(WARNING) << "readdir " << path << " with offset " << offset;
     /* resolve path */
     string dir = string(path);
@@ -106,10 +111,12 @@ int sb_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t offset
     /* Read all blocks and list each of them. */
     uint32_t tot_blocks = disk_inode.total_blocks(disk_inode.size);
     DirBlock dir_block;
+    DLOG(INFO) << "start listing with total blocks " << tot_blocks;
     for (uint32_t block_id = 0; block_id < tot_blocks; ++block_id) {
         auto dir_ret = inode.read_data(block_id * sizeof(DirBlock), (uint8_t *)&dir_block, sizeof(DirBlock));
         rt_assert(dir_ret != kFail, "read dir block failed");
         for (auto &entry : dir_block.entries) {
+            DLOG(INFO) << "Cur entry " << entry.inode << " " << entry.name;
             if (entry.isValid()) {
                 filler(buf, entry.name, nullptr, 0, (fuse_fill_dir_flags)0);
             }
@@ -119,6 +126,7 @@ int sb_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t offset
 }
 
 int sb_getattr(const char *path, struct stat *stbuf, fuse_file_info *fi) {
+    auto guard = lock_guard(mtx);
     return sb_rmw_diskinode(path, fi, [&](DiskInode &disk_inode) {
         stbuf->st_mode = disk_inode.mode;
         stbuf->st_atime = disk_inode.access_time;
@@ -137,6 +145,7 @@ int sb_getattr(const char *path, struct stat *stbuf, fuse_file_info *fi) {
 }
 
 int sb_rmdir(const char *path) {
+    auto guard = lock_guard(mtx);
     DLOG(WARNING) << "rmdir " << path;
     /* resolve path */
     string dir = string(path), parent, child;
@@ -180,6 +189,7 @@ int sb_rmdir(const char *path) {
 }
 
 int sb_create(const char *path, mode_t mode, struct fuse_file_info *fi) {
+    auto guard = lock_guard(mtx);
     DLOG(WARNING) << "create " << path << " with mode " << mode << " and fi " << fi;
     /* resolve path and create inode */
     string dir = string(path), parent, child;
@@ -193,11 +203,13 @@ int sb_create(const char *path, mode_t mode, struct fuse_file_info *fi) {
     disk_inode.mode |= mode & 0777;
     /* TODO: parent not a directory, file exists... */
     parent_inode.create(child.c_str(), &disk_inode, &child_inode);
-    /* create a file then open it. */
-    return sb_open(path, fi);
+    int flags = fi->flags;
+    fi->fh = fd_manager->open(child_inode);
+    return 0;
 }
 
 int sb_unlink(const char *path) {
+    auto guard = lock_guard(mtx);
     DLOG(WARNING) << "unlink " << path;
     /* resolve path */
     string dir = string(path), parent, child;
@@ -220,6 +232,7 @@ int sb_unlink(const char *path) {
 }
 
 int sb_rename(const char *oldpath, const char *newpath, unsigned int flags) {
+    auto guard = lock_guard(mtx);
     DLOG(WARNING) << "rename " << oldpath << " to " << newpath;
     /* resolve path */
     string old_dir = string(oldpath), old_parent, old_child;
@@ -258,6 +271,7 @@ int sb_rename(const char *oldpath, const char *newpath, unsigned int flags) {
 }
 
 int sb_open(const char *path, struct fuse_file_info *fi) {
+    auto guard = lock_guard(mtx);
     DLOG(WARNING) << "open " << path;
     /* resolve path */
     Inode inode = path_resolver->resolve(string(path));
@@ -271,6 +285,7 @@ int sb_open(const char *path, struct fuse_file_info *fi) {
 }
 
 int sb_release(const char *path, struct fuse_file_info *fi) {
+    auto guard = lock_guard(mtx);
     DLOG(WARNING) << "release " << path << " " << fi << " " << fi->fh;
     fd_manager->close(fi->fh);
     fi->fh = 0;
@@ -278,6 +293,7 @@ int sb_release(const char *path, struct fuse_file_info *fi) {
 }
 
 int sb_read(const char *path, char *buf, size_t size, off_t offset, struct fuse_file_info *fi) {
+    auto guard = lock_guard(mtx);
     DLOG(WARNING) << "read " << path << " with size " << size << " and offset " << offset;
     if (size > UINT32_MAX) {
         /* Temporarily not support read > 4GB */
@@ -300,6 +316,7 @@ int sb_read(const char *path, char *buf, size_t size, off_t offset, struct fuse_
 }
 
 int sb_write(const char *path, const char *buf, size_t size, off_t offset, struct fuse_file_info *fi) {
+    auto guard = lock_guard(mtx);
     DLOG(WARNING) << "write " << path << " with size " << size << " and offset " << offset << " and fh " << fi->fh;
     if (size > UINT32_MAX) {
         /* Temporarily not support write > 4GB */
@@ -321,6 +338,7 @@ int sb_write(const char *path, const char *buf, size_t size, off_t offset, struc
 }
 
 int sb_truncate(const char *path, off_t off, struct fuse_file_info *fi) {
+    auto guard = lock_guard(mtx);
     DLOG(WARNING) << "truncate " << path << " with offset " << off;
     if (off > UINT32_MAX) {
         /* Temporarily not support truncate > 4GB */
@@ -343,12 +361,14 @@ int sb_truncate(const char *path, off_t off, struct fuse_file_info *fi) {
 }
 
 int sb_statfs(const char *path, struct statvfs *stbuf) {
+    auto guard = lock_guard(mtx);
     DLOG(WARNING) << "statfs " << path;
     /* TODO: unimplemented, need block info */
     return 0;
 }
 
 int sb_fsync(const char *path, int datasync, struct fuse_file_info *fi) {
+    auto guard = lock_guard(mtx);
     DLOG(WARNING) << "fsync " << path;
     Inode inode;
     if (!fd_manager->get(fi->fh, &inode)) {
@@ -363,6 +383,7 @@ int sb_fsync(const char *path, int datasync, struct fuse_file_info *fi) {
 }
 
 int sb_utimens(const char *path, const struct timespec tv[2], struct fuse_file_info *fi) {
+    auto guard = lock_guard(mtx);
     DLOG(WARNING) << "utimens " << path;
     return sb_rmw_diskinode(path, fi, [=](DiskInode &disk_inode) {
         LOG(WARNING) << "tv " << tv[0].tv_sec << " " << tv[0].tv_nsec << " " << tv[1].tv_sec << " " << tv[1].tv_nsec;
@@ -373,6 +394,7 @@ int sb_utimens(const char *path, const struct timespec tv[2], struct fuse_file_i
 }
 
 int sb_chmod(const char *path, mode_t mode, struct fuse_file_info *fi) {
+    auto guard = lock_guard(mtx);
     DLOG(WARNING) << "chmod " << path;
     return sb_rmw_diskinode(path, fi, [=](DiskInode &disk_inode) {
         disk_inode.mode = mode;
@@ -381,6 +403,7 @@ int sb_chmod(const char *path, mode_t mode, struct fuse_file_info *fi) {
 }
 
 int sb_chown(const char *path, uid_t uid, gid_t gid, struct fuse_file_info *fi) {
+    auto guard = lock_guard(mtx);
     DLOG(WARNING) << "chown " << path;
     return sb_rmw_diskinode(path, fi, [=](DiskInode &disk_inode) {
         disk_inode.uid = uid;
