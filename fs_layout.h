@@ -13,7 +13,7 @@ struct Position {
         return Position{ UINT32_MAX, UINT32_MAX };
     }
 
-    inline bool isValid() {
+    [[nodiscard]] inline bool isValid() const {
         return block_id != UINT32_MAX;
     }
 };
@@ -162,7 +162,7 @@ struct DiskInode {
      */
     int sync_data(BlockDevice *dev, bool indirect = false);
 
-    inline void print() {
+    inline void print() const {
         DLOG(WARNING) << "size: " << size;
         DLOG(WARNING) << "access_time: " << access_time;
         DLOG(WARNING) << "change_time: " << change_time;
