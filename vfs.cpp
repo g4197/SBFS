@@ -386,7 +386,6 @@ int sb_utimens(const char *path, const struct timespec tv[2], struct fuse_file_i
     auto guard = lock_guard(mtx);
     DLOG(WARNING) << "utimens " << path;
     return sb_rmw_diskinode(path, fi, [=](DiskInode &disk_inode) {
-        LOG(WARNING) << "tv " << tv[0].tv_sec << " " << tv[0].tv_nsec << " " << tv[1].tv_sec << " " << tv[1].tv_nsec;
         disk_inode.access_time = tv[0].tv_sec + tv[0].tv_nsec / 1000000000.0;
         disk_inode.modify_time = tv[1].tv_sec + tv[1].tv_nsec / 1000000000.0;
         return kSuccess;
