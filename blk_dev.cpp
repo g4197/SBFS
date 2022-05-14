@@ -8,7 +8,7 @@
 namespace sbfs {
 BlockDevice::BlockDevice(const char *path, const uint64_t size) : blk_cache_mgr_(kBlockCacheSize, this) {
     rt_assert(size % kBlockSize == 0, "size must be multiple of kBlockSize");
-
+    DLOG(INFO) << "create BlockDevice with size " << size;
     fd_ = open(path, O_DIRECT | O_RDWR | O_NOATIME | O_CREAT, 0644);
 
     if (fd_ < 0) {
@@ -58,7 +58,7 @@ int BlockDevice::write(blk_id_t block_id, const Block *buf) {
 int BlockDevice::write_to_disk(blk_id_t block_id, const Block *buf) {
     rt_assert(block_id < num_data_blocks_, "block_id out of range");
     rt_assert(buf != nullptr, "buf is nullptr");
-
+    DLOG(INFO) << "write block to disk " << block_id << " from " << buf;
     if (pwrite(fd_, buf, kBlockSize, block_id * kBlockSize) != kBlockSize) {
         DLOG(WARNING) << "pwrite " << block_id << " failed " << strerror(errno);
         return kFail;
@@ -66,9 +66,18 @@ int BlockDevice::write_to_disk(blk_id_t block_id, const Block *buf) {
     return kSuccess;
 }
 
+int BlockDevice::read_from_disk(blk_id_t block_id, Block *buf) {
+    rt_assert(block_id < num_data_blocks_, "block_id out of range");
+    DLOG(INFO) << "read block from disk " << block_id << " to " << buf;
+    if (pread(fd_, buf, kBlockSize, block_id * kBlockSize) != kBlockSize) {
+        DLOG(WARNING) << "pread " << block_id << " failed " << strerror(errno);
+        return kFail;
+    }
+    return kSuccess;
+}
+
 int BlockDevice::write_tx(const std::vector<blk_id_t> &block_ids, const std::vector<const Block *> &bufs) {
     rt_assert(block_ids.size() == bufs.size(), "block_ids and bufs size not match");
-
     for (size_t i = 0; i < block_ids.size(); ++i) {
         rt_assert(block_ids[i] < num_data_blocks_, "block_id out of range");
         /* TODO: transaction */

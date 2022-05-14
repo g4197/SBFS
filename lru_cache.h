@@ -87,6 +87,7 @@ private:
     std::unordered_map<blk_id_t, int> _hashtable;          // map blk id to slot id
     std::vector<std::pair<Block *, BlockStatus>> _buffer;  // actual cache
     uint64_t _size;                                        // maxium slot of buffer
+    uint64_t _cache_size;                                  // actual cache size, in Bytes
     BlockDevice *_dev;
 };
 }  // namespace sbfs

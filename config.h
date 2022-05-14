@@ -32,8 +32,8 @@ inline constexpr uint64_t GB(uint64_t x) {
     } while (0)
 #endif
 
-constexpr uint64_t kBlockSize = 4096;  // block is 4kb
-constexpr uint64_t kBlockCacheSize = MB(32);
+constexpr uint64_t kBlockSize = 4096;         // block is 4kb
+constexpr uint64_t kBlockCacheSize = MB(32);  // block cache
 
 using blk_id_t = uint32_t;
 
@@ -46,7 +46,6 @@ constexpr uint64_t kInodeDirectCnt = 23;
 constexpr uint64_t kMaxDirNameLength = 251;
 
 constexpr uint64_t kPathCacheSize = MB(32);
-
 constexpr uint64_t kDiskSize = GB(16);
 constexpr uint32_t kLogBlocks = 0;
 constexpr uint32_t kFSDataBlocks = kDiskSize / kBlockSize - kLogBlocks;

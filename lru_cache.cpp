@@ -5,19 +5,24 @@ using namespace std;
 using namespace sbfs;
 
 LRUCacheManager::LRUCacheManager(const uint64_t cache_size, BlockDevice *parent)
-    : FREE_first(0), LRU_first(-1), LRU_last(-1), _hashtable(), _buffer(cache_size), _size(cache_size), _dev(parent) {
-    for (int i = 0; i < cache_size; i++) {
+    : FREE_first(0), LRU_first(-1), LRU_last(-1), _hashtable(), _cache_size(cache_size), _dev(parent) {
+    DLOG(INFO) << "cache mgr init start";
+    _size = cache_size / kBlockSize;
+    _buffer = vector<pair<Block *, BlockStatus>>(_size);
+    for (int i = 0; i < _size; i++) {
         auto &t = _buffer[i].second;
         t.prev = i - 1;
         t.next = i + 1;
         if (i == 0) {
             t.prev = -1;
         }
-        if (i == cache_size - 1) {
+        if (i == _size - 1) {
             t.next = -1;
         }
         _buffer[i].first = new Block;
     }
+
+    DLOG(INFO) << "cache created with size " << _size << " blocks";
 };
 
 LRUCacheManager::~LRUCacheManager() {
@@ -28,13 +33,15 @@ LRUCacheManager::~LRUCacheManager() {
 
 int LRUCacheManager::upsert(blk_id_t block_id, const Block *block, bool is_update) {
     int slot = -1;
+    DLOG(INFO) << "cache receive upsert req id: " << block_id << " isupdate: " << is_update << " " << block;
     if (get_page(block_id, slot) != kSuccess) {
         DLOG(ERROR) << "upsert " << block_id << " failed";
         return kFail;
     } else {
+        DLOG(INFO) << "upsert " << block_id << " slot " << slot;
         memcpy(_buffer[slot].first, block, sizeof(Block));
         //_buffer[slot].first = block;
-        if (is_update && !_buffer[slot].second.is_dirty()) {
+        if (!_buffer[slot].second.is_dirty()) {
             _buffer[slot].second.rev_dirty();
         }
         return kSuccess;
@@ -46,11 +53,13 @@ int LRUCacheManager::upsert(blk_id_t block_id, const Block *block, bool is_updat
 int LRUCacheManager::get(blk_id_t block_id, Block *block) {
     std::ignore = block;
     int slot = -1;
+    DLOG(INFO) << "cache receive get req: " << block_id << " " << block;
     if (get_page(block_id, slot) != kSuccess) {
         DLOG(ERROR) << "get " << block_id << " failed";
         block = nullptr;
         return kFail;
     } else {
+        DLOG(INFO) << "cache get " << block_id << " slot " << slot;
         memcpy(block, _buffer[slot].first, sizeof(Block));
         // block = _buffer[slot].first;
         return kSuccess;
@@ -61,15 +70,18 @@ int LRUCacheManager::get(blk_id_t block_id, Block *block) {
 }
 
 int LRUCacheManager::remove(blk_id_t block_id) {
+    DLOG(INFO) << "cache receive remove req: " << block_id;
     return remove_page(block_id);
 }
 
 int LRUCacheManager::sync(blk_id_t block_id) {
     int slot = -1;
+    DLOG(INFO) << "cache receive sync req: " << block_id;
     if (get_page(block_id, slot) != kSuccess) {
         DLOG(ERROR) << "sync block not found";
         return kFail;
     } else {
+        DLOG(INFO) << "cache sync " << block_id << " slot " << slot;
         if (_buffer[slot].second.is_dirty()) {
             _buffer[slot].second.rev_dirty();
             return _dev->write_to_disk(_buffer[slot].second.id, _buffer[slot].first);
@@ -86,7 +98,7 @@ int LRUCacheManager::get_page(blk_id_t id, int &slot) {
     if (p == _hashtable.end()) {
         alloc(slot);
         _buffer[slot].second.id = id;
-        if (_dev->read(id, _buffer[slot].first) != kSuccess) {
+        if (_dev->read_from_disk(id, _buffer[slot].first) != kSuccess) {
             DLOG(ERROR) << "read block failed at cache get_page";
             return kFail;
         }
@@ -109,6 +121,7 @@ int LRUCacheManager::remove_page(blk_id_t id) {
     } else {
         slot = p->second;
     }
+    DLOG(INFO) << "cache remove_page: " << id << " slot " << slot;
     auto &stu = _buffer[slot].second;
     if (stu.is_dirty()) {
         if (_dev->write_to_disk(id, _buffer[slot].first) != kSuccess) {

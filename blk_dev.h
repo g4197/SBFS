@@ -34,6 +34,7 @@ public:
     int sync(blk_id_t block_id);
 
     int write_to_disk(blk_id_t block_id, const Block *buf);
+    int read_from_disk(blk_id_t block_id, Block *buf);
 
 private:
     LRUCacheManager blk_cache_mgr_;
