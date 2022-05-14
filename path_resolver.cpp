@@ -30,7 +30,8 @@ Inode PathResolver::resolve(const std::string &path) {
         string cache_path = cache_vec[i];
         path_cache_t::iterator iter = path_cache_.find(cache_path);
         if (iter != path_cache_.end()) {
-            DLOG(WARNING) << "Found in cache: " << cache_path;
+            DLOG(WARNING) << "Found in cache: " << cache_path << " " << iter->first << " "
+                          << iter->second.inode.pos.block_id << " " << iter->second.inode.pos.block_offset;
             iter->second.visited = true;  // Mark as visited.
             cur_inode = iter->second.inode;
             cur_path_index = i + 1;  // Now ready for next part of path.
@@ -61,8 +62,53 @@ Inode PathResolver::resolve(const std::string &path) {
     return cur_inode;
 }
 
+Inode PathResolver::resolveNoCache(const std::string &path) {
+    DLOG(WARNING) << "Resolve path: " << path;
+    if (path[0] != '/') {
+        DLOG(WARNING) << "Path must start with '/'";
+        return Inode::invalid();
+    }
+    if (path == "/") {
+        return fs_->root();
+    }
+
+    string path_no_both_slash = removeEndSlash(path).substr(1);
+    vector<string> path_vec = split(path_no_both_slash, '/', false);
+    vector<string> cache_vec = split(path_no_both_slash, '/', true);
+    for (auto str : cache_vec) {
+        DLOG(WARNING) << "Cache: " << str;
+    }
+    /* lookup cache first. */
+    Inode cur_inode = fs_->root();
+    rt_assert(cur_inode.isValid(), "Root inode invalid?");
+    int cur_path_index = 0;
+    /* continue resolving path. */
+    for (int i = cur_path_index; i < path_vec.size(); ++i) {
+        string path_part = path_vec[i];
+        Inode next_inode;
+        if (cur_inode.find(path_part.c_str(), &next_inode) == kFail) {
+            return Inode::invalid();
+        }
+        DLOG(WARNING) << "Resolving path part: " << path_part << " cur inode: " << cur_inode.pos.block_id << " "
+                      << cur_inode.pos.block_offset << " next_inode: " << next_inode.pos.block_id << " "
+                      << next_inode.pos.block_offset;
+        cur_inode = next_inode;
+    }
+    return cur_inode;
+}
+
 void PathResolver::removePrefix(const std::string &prefix) {
+    DLOG(WARNING) << "Remove prefix: " << prefix;
     string prefix_no_both_slash = removeEndSlash(prefix).substr(1);
+    string start = prefix_no_both_slash;
+    for (auto it = path_cache_.lower_bound(start); it != path_cache_.end();) {
+        if (it->first.substr(0, prefix_no_both_slash.size()) == prefix_no_both_slash) {
+            DLOG(INFO) << "Remove prefix: " << it->first;
+            it = path_cache_.erase(it);
+        } else {
+            ++it;
+        }
+    }
 }
 
 void PathResolver::evict(size_t size) {
@@ -101,7 +147,7 @@ vector<string> PathResolver::split(const string &s, char delim, bool reserve_pre
         ret.push_back(reserve_prev ? s.substr(0, end) : s.substr(start, end - start));
         start = end + 1;
     }
-    ret.push_back(s.substr(start));
+    ret.push_back(reserve_prev ? s : s.substr(start));
     return ret;
 }
 

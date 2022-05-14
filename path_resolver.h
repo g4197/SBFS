@@ -29,6 +29,7 @@ public:
     void evict(size_t size);
 
 private:
+    Inode resolveNoCache(const std::string &path);
     path_cache_t::iterator next(path_cache_t::iterator iter);
     string removeEndSlash(const string &path);
     vector<string> split(const string &s, char delim, bool reserve_prev);
