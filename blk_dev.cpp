@@ -3,6 +3,8 @@
 #include <fcntl.h>
 #include <unistd.h>
 
+#include "lru_cache.h"
+
 namespace sbfs {
 BlockDevice::BlockDevice(const char *path, const uint64_t size) : blk_cache_mgr_(kBlockCacheSize, this) {
     rt_assert(size % kBlockSize == 0, "size must be multiple of kBlockSize");
