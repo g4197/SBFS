@@ -9,7 +9,7 @@ class BlockDevice;
 class LRUCacheManager {
 public:
     LRUCacheManager(const uint64_t cache_size, BlockDevice *parent);
-    ~LRUCacheManager() = default;
+    ~LRUCacheManager();
     /*
      * insert or update a block to cache, if full, evict and write back (another) one.
      * return 0 if success, kFail if failed.
@@ -84,9 +84,9 @@ private:
     int FREE_first;
     int LRU_first;
     int LRU_last;
-    std::unordered_map<blk_id_t, int> _hashtable;        // map blk id to slot id
-    std::vector<std::pair<Block, BlockStatus>> _buffer;  // actual cache
-    uint64_t _size;                                      // maxium slot of buffer
+    std::unordered_map<blk_id_t, int> _hashtable;          // map blk id to slot id
+    std::vector<std::pair<Block *, BlockStatus>> _buffer;  // actual cache
+    uint64_t _size;                                        // maxium slot of buffer
     BlockDevice *_dev;
 };
 }  // namespace sbfs

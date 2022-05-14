@@ -16,8 +16,15 @@ LRUCacheManager::LRUCacheManager(const uint64_t cache_size, BlockDevice *parent)
         if (i == cache_size - 1) {
             t.next = -1;
         }
+        _buffer[i].first = new Block;
     }
 };
+
+LRUCacheManager::~LRUCacheManager() {
+    for (int i = 0; i < _size; i++) {
+        delete _buffer[i].first;
+    }
+}
 
 int LRUCacheManager::upsert(blk_id_t block_id, const Block *block, bool is_update) {
     int slot = -1;
@@ -25,7 +32,8 @@ int LRUCacheManager::upsert(blk_id_t block_id, const Block *block, bool is_updat
         DLOG(ERROR) << "upsert " << block_id << " failed";
         return kFail;
     } else {
-        _buffer[slot].first = *block;
+        memcpy(_buffer[slot].first, block, sizeof(Block));
+        //_buffer[slot].first = block;
         if (is_update && !_buffer[slot].second.is_dirty()) {
             _buffer[slot].second.rev_dirty();
         }
@@ -43,7 +51,8 @@ int LRUCacheManager::get(blk_id_t block_id, Block *block) {
         block = nullptr;
         return kFail;
     } else {
-        block = &_buffer[slot].first;
+        memcpy(block, _buffer[slot].first, sizeof(Block));
+        // block = _buffer[slot].first;
         return kSuccess;
     }
     block = nullptr;
@@ -63,7 +72,7 @@ int LRUCacheManager::sync(blk_id_t block_id) {
     } else {
         if (_buffer[slot].second.is_dirty()) {
             _buffer[slot].second.rev_dirty();
-            return _dev->write_to_disk(_buffer[slot].second.id, &_buffer[slot].first);
+            return _dev->write_to_disk(_buffer[slot].second.id, _buffer[slot].first);
         } else {
             return kSuccess;
         }
@@ -77,7 +86,7 @@ int LRUCacheManager::get_page(blk_id_t id, int &slot) {
     if (p == _hashtable.end()) {
         alloc(slot);
         _buffer[slot].second.id = id;
-        if (_dev->read(id, &_buffer[slot].first) != kSuccess) {
+        if (_dev->read(id, _buffer[slot].first) != kSuccess) {
             DLOG(ERROR) << "read block failed at cache get_page";
             return kFail;
         }
@@ -102,7 +111,7 @@ int LRUCacheManager::remove_page(blk_id_t id) {
     }
     auto &stu = _buffer[slot].second;
     if (stu.is_dirty()) {
-        if (_dev->write_to_disk(id, &_buffer[slot].first) != kSuccess) {
+        if (_dev->write_to_disk(id, _buffer[slot].first) != kSuccess) {
             DLOG(ERROR) << "write block dirty failed at cache remove_page";
             return kFail;
         }
@@ -126,7 +135,7 @@ int LRUCacheManager::alloc(int &slot) {
         if (/*buffer[slot].pin*/ true) {
             auto &stu = _buffer[slot].second;
             if (stu.is_dirty()) {
-                if (_dev->write_to_disk(_buffer[slot].second.id, &_buffer[slot].first)) {
+                if (_dev->write_to_disk(_buffer[slot].second.id, _buffer[slot].first)) {
                     DLOG(ERROR) << "write block dirty failed at cache alloc";
                     return kFail;
                 }
