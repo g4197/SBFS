@@ -6,14 +6,14 @@
 namespace sbfs {
 
 struct Position {
-    uint32_t block_id;
+    blk_id_t block_id;
     uint32_t block_offset;
 
     static inline Position invalid() {
         return Position{ UINT32_MAX, UINT32_MAX };
     }
 
-    inline bool isValid() {
+    [[nodiscard]] inline bool isValid() const {
         return block_id != UINT32_MAX;
     }
 };
@@ -24,7 +24,7 @@ struct Position {
  */
 
 /* Only one, located at Block 0 of disk. */
-struct SuperBlock {
+struct alignas(kBlockSize) SuperBlock {
     uint32_t magic;
     uint32_t total_blocks;
     uint32_t inode_bitmap_blocks;
@@ -32,17 +32,17 @@ struct SuperBlock {
     uint32_t data_bitmap_blocks;
     uint32_t data_area_blocks;
     Position root_inode_pos;
-    inline bool isValid() {
+    [[nodiscard]] inline bool isValid() const {
         return magic == kFSMagic;
     }
 
-    inline void print() {
-        DLOG(INFO) << "total_blocks: " << total_blocks;
-        DLOG(INFO) << "inode_bitmap_blocks: " << inode_bitmap_blocks;
-        DLOG(INFO) << "inode_area_blocks: " << inode_area_blocks;
-        DLOG(INFO) << "data_bitmap_blocks: " << data_bitmap_blocks;
-        DLOG(INFO) << "data_area_blocks: " << data_area_blocks;
-        DLOG(INFO) << "root inode pos: " << root_inode_pos.block_id << " " << root_inode_pos.block_offset;
+    inline void print() const {
+        DLOG(WARNING) << "total_blocks: " << total_blocks;
+        DLOG(WARNING) << "inode_bitmap_blocks: " << inode_bitmap_blocks;
+        DLOG(WARNING) << "inode_area_blocks: " << inode_area_blocks;
+        DLOG(WARNING) << "data_bitmap_blocks: " << data_bitmap_blocks;
+        DLOG(WARNING) << "data_area_blocks: " << data_area_blocks;
+        DLOG(WARNING) << "root inode pos: " << root_inode_pos.block_id << " " << root_inode_pos.block_offset;
     }
     uint8_t padding[kBlockSize - 32];
 };
@@ -98,7 +98,7 @@ struct DiskInode {
     uint32_t size;
     /* some metadata */
     uint32_t access_time;
-    uint32_t create_time;
+    uint32_t change_time;
     uint32_t modify_time;
 
     uint16_t uid;       // Owner user id (may be used in ext tasks)
@@ -113,10 +113,11 @@ struct DiskInode {
     blk_id_t indirect2;
     DiskInodeType type;
 
+    DiskInode() = default;
     /* Metadata (create time etc.) should be updated. */
-    DiskInode(DiskInodeType type_);
+    explicit DiskInode(DiskInodeType type_);
     /**
-     * @brief get actuall block_id of an inner_id
+     * @brief get actual block_id of an inner_id
      *
      * @param inner_id the block offset within a file
      * @return blk_id_t the ABSOLUTE block id
@@ -160,6 +161,17 @@ struct DiskInode {
      * @return int kSuccess on success, kFail on failure
      */
     int sync_data(BlockDevice *dev, bool indirect = false);
+
+    inline void print() const {
+        DLOG(WARNING) << "size: " << size;
+        DLOG(WARNING) << "access_time: " << access_time;
+        DLOG(WARNING) << "change_time: " << change_time;
+        DLOG(WARNING) << "modify_time: " << modify_time;
+        DLOG(WARNING) << "uid: " << uid;
+        DLOG(WARNING) << "gid: " << gid;
+        DLOG(WARNING) << "link_cnt: " << link_cnt;
+        DLOG(WARNING) << "mode: " << mode;
+    }
 
 private:
     int clear(Bitmap *data_bitmap, BlockDevice *dev);

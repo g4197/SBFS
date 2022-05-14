@@ -9,7 +9,7 @@ class BlockDevice;
 
 class BlockCacheManager {
 public:
-    BlockCacheManager(const uint64_t cache_size, BlockDevice *parent);
+    BlockCacheManager(uint64_t cache_size, BlockDevice *parent);
     ~BlockCacheManager();
     /* 
      * insert or update a block to cache, if full, evict and write back (another) one.

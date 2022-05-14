@@ -8,12 +8,12 @@ namespace sbfs {
 class BlockDevice {
 public:
     /* Path is the simulated "disk file" path, size is its size. */
-    BlockDevice(const char *path, const uint64_t size);
+    BlockDevice(const char *path, uint64_t size);
     ~BlockDevice();
     /* 
      * Read block_id to buf,
      * First find the block in BlockCacheManager,
-     * if miss, read from disk, and put it in BlockCacheManager.
+     * if missed, read from disk, and put it in BlockCacheManager.
      */
     int read(blk_id_t block_id, Block *buf);
     /* 
