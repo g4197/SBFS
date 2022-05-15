@@ -107,7 +107,7 @@ int DiskInode::increase(int old_blocks, int old_data_blocks, int new_blocks, int
     }
 
     // step two, increase indirect1 blocks
-    if (new_data_blocks >= INODE_DIRECT_COUNT) {
+    if (new_data_blocks > INODE_DIRECT_COUNT) {
         if (!indirect1) {
             indirect1 = data_bitmap->alloc(dev);
             if (indirect1 == kFail) {
@@ -138,7 +138,7 @@ int DiskInode::increase(int old_blocks, int old_data_blocks, int new_blocks, int
     }
     // step three, increase indirect2 blocks
 
-    if (new_data_blocks >= INODE_DIRECT_COUNT + INODE_INDIRECT_COUNT) {
+    if (new_data_blocks > INODE_DIRECT_COUNT + INODE_INDIRECT_COUNT) {
         if (!indirect2) {
             indirect2 = data_bitmap->alloc(dev);
             if (indirect2 == kFail) {
@@ -152,8 +152,11 @@ int DiskInode::increase(int old_blocks, int old_data_blocks, int new_blocks, int
             return kFail;
         }
         auto p = (uint32_t *)(ind2.data);
-        int old_idx_limit = old_data_blocks - INODE_DIRECT_COUNT - INODE_INDIRECT_COUNT;
+        int old_idx_limit = old_data_blocks - INODE_DIRECT_COUNT - INODE_INDIRECT_COUNT - 1;
         int blk_limit = old_idx_limit / INODE_INDIRECT_COUNT;
+        if (old_idx_limit < 0)
+        	blk_limit = -1;
+        DLOG(WARNING) << "increase indirect2 " << " old idx " << old_idx_limit << " blk " << blk_limit << endl;
         for (int i = max(old_data_blocks, INODE_DIRECT_COUNT + INODE_INDIRECT_COUNT); i < new_data_blocks; i++) {
             int j = i - INODE_DIRECT_COUNT - INODE_INDIRECT_COUNT;
             int blk = j / INODE_INDIRECT_COUNT;
