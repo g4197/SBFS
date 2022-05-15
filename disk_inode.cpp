@@ -106,94 +106,97 @@ int DiskInode::increase(int old_blocks, int old_data_blocks, int new_blocks, int
     }
 
     // step two, increase indirect1 blocks
-    if (!indirect1) {
-        indirect1 = data_bitmap->alloc(dev);
-        if (indirect1 == kFail) {
-            DLOG(WARNING) << "alloc indirect1 bitmap failed at increase 2";
+    if (new_data_blocks >= INODE_DIRECT_COUNT) {
+        if (!indirect1) {
+            indirect1 = data_bitmap->alloc(dev);
+            if (indirect1 == kFail) {
+                DLOG(WARNING) << "alloc indirect1 bitmap failed at increase 2";
+                return kFail;
+            }
+        }
+        auto ind1 = new Block;
+        if (dev->read(indirect1, ind1) != kSuccess) {
+            DLOG(WARNING) << "read indirect1 block " << indirect1 << " failed at increase 2";
             return kFail;
         }
-    }
-    auto ind1 = new Block;
-    if (dev->read(indirect1, ind1) != kSuccess) {
-        DLOG(WARNING) << "read indirect1 block " << indirect1 << " failed at increase 2";
-        return kFail;
-    }
-    auto p = (uint32_t *)(ind1->data);
-    for (int i = max(old_data_blocks, INODE_DIRECT_COUNT);
-         i < min(new_data_blocks, INODE_DIRECT_COUNT + INODE_INDIRECT_COUNT); i++) {
-        blk_id_t new_blk = data_bitmap->alloc(dev);
-        DLOG(WARNING) << "alloc indirect1 " << new_blk;
-        if (new_blk == kFail) {
-            DLOG(WARNING) << "alloc data bitmap failed at increase 2";
+        auto p = (uint32_t *)(ind1->data);
+        for (int i = max(old_data_blocks, INODE_DIRECT_COUNT);
+             i < min(new_data_blocks, INODE_DIRECT_COUNT + INODE_INDIRECT_COUNT); i++) {
+            blk_id_t new_blk = data_bitmap->alloc(dev);
+            DLOG(WARNING) << "alloc indirect1 " << new_blk;
+            if (new_blk == kFail) {
+                DLOG(WARNING) << "alloc data bitmap failed at increase 2";
+                return kFail;
+            }
+            p[i - INODE_DIRECT_COUNT] = new_blk;
+        }
+        if (dev->write(indirect1, ind1) != kSuccess) {
+            DLOG(WARNING) << "write indirect1 block " << indirect1 << " failed at increase 2";
             return kFail;
         }
-        p[i - INODE_DIRECT_COUNT] = new_blk;
+        delete ind1;
     }
-    if (dev->write(indirect1, ind1) != kSuccess) {
-        DLOG(WARNING) << "write indirect1 block " << indirect1 << " failed at increase 2";
-        return kFail;
-    }
-    delete ind1;
-
     // step three, increase indirect2 blocks
 
-    if (!indirect2) {
-        indirect2 = data_bitmap->alloc(dev);
-        if (indirect2 == kFail) {
-            DLOG(WARNING) << "alloc indirect2 bitmap failed at increase 3";
-            return kFail;
-        }
-    }
-    auto ind2 = new Block;
-    if (dev->read(indirect2, ind2) != kSuccess) {
-        DLOG(WARNING) << "read indirect2 block " << indirect2 << " failed at increase 3";
-        return kFail;
-    }
-    p = (uint32_t *)(ind2->data);
-    int old_idx_limit = old_data_blocks - INODE_DIRECT_COUNT - INODE_INDIRECT_COUNT;
-    int blk_limit = old_idx_limit / INODE_INDIRECT_COUNT;
-    for (int i = max(old_data_blocks, INODE_DIRECT_COUNT + INODE_INDIRECT_COUNT); i < new_data_blocks; i++) {
-        int j = i - INODE_DIRECT_COUNT - INODE_INDIRECT_COUNT;
-        int blk = j / INODE_INDIRECT_COUNT;
-        // at indirect2, we have to allocate a new indirect1 block that is not previously allocated
-        if (blk > blk_limit) {
-            blk_id_t new_ind1 = data_bitmap->alloc(dev);
-            DLOG(WARNING) << "alloc indrect2->1 " << new_ind1;
-
-            if (new_ind1 == kFail) {
-                DLOG(WARNING) << "alloc indirect1 bitmap failed at increase 3";
-                return kFail;
-            }
-            p[blk] = new_ind1;
-            ++blk_limit;
-            // todo : we may write back all at once, which might reduce overhead
-            if (dev->write(indirect2, ind2) != kSuccess) {
-                DLOG(WARNING) << "write indirect2 block " << indirect2 << " failed at increase 3";
+    if (new_data_blocks >= INODE_DIRECT_COUNT + INODE_INDIRECT_COUNT) {
+        if (!indirect2) {
+            indirect2 = data_bitmap->alloc(dev);
+            if (indirect2 == kFail) {
+                DLOG(WARNING) << "alloc indirect2 bitmap failed at increase 3";
                 return kFail;
             }
         }
-        auto ind21 = new Block;
-        if (dev->read(p[blk], ind21) != kSuccess) {
-            DLOG(WARNING) << "read indirect1 block " << p[blk] << " failed at increase 3";
+        auto ind2 = new Block;
+        if (dev->read(indirect2, ind2) != kSuccess) {
+            DLOG(WARNING) << "read indirect2 block " << indirect2 << " failed at increase 3";
             return kFail;
         }
+        auto p = (uint32_t *)(ind2->data);
+        int old_idx_limit = old_data_blocks - INODE_DIRECT_COUNT - INODE_INDIRECT_COUNT;
+        int blk_limit = old_idx_limit / INODE_INDIRECT_COUNT;
+        for (int i = max(old_data_blocks, INODE_DIRECT_COUNT + INODE_INDIRECT_COUNT); i < new_data_blocks; i++) {
+            int j = i - INODE_DIRECT_COUNT - INODE_INDIRECT_COUNT;
+            int blk = j / INODE_INDIRECT_COUNT;
+            // at indirect2, we have to allocate a new indirect1 block that is not previously allocated
+            if (blk > blk_limit) {
+                blk_id_t new_ind1 = data_bitmap->alloc(dev);
+                DLOG(WARNING) << "alloc indrect2->1 " << new_ind1;
 
-        blk_id_t new_blk = data_bitmap->alloc(dev);
-        DLOG(WARNING) << "alloc new block at ind2 " << j << " from indirect21 " << blk << " ret = " << new_blk;
-        if (new_blk == kFail) {
-            DLOG(WARNING) << "alloc data bitmap failed at increase 3";
-            return kFail;
-        }
+                if (new_ind1 == kFail) {
+                    DLOG(WARNING) << "alloc indirect1 bitmap failed at increase 3";
+                    return kFail;
+                }
+                p[blk] = new_ind1;
+                ++blk_limit;
+                // todo : we may write back all at once, which might reduce overhead
+                if (dev->write(indirect2, ind2) != kSuccess) {
+                    DLOG(WARNING) << "write indirect2 block " << indirect2 << " failed at increase 3";
+                    return kFail;
+                }
+            }
+            auto ind21 = new Block;
+            if (dev->read(p[blk], ind21) != kSuccess) {
+                DLOG(WARNING) << "read indirect1 block " << p[blk] << " failed at increase 3";
+                return kFail;
+            }
 
-        auto p2 = (uint32_t *)(ind21->data);
-        p2[j % INODE_INDIRECT_COUNT] = new_blk;
-        if (dev->write(p[blk], ind21) != kSuccess) {
-            DLOG(WARNING) << "write indirect1 block " << p[blk] << " failed at increase 3";
-            return kFail;
+            blk_id_t new_blk = data_bitmap->alloc(dev);
+            DLOG(WARNING) << "alloc new block at ind2 " << j << " from indirect21 " << blk << " ret = " << new_blk;
+            if (new_blk == kFail) {
+                DLOG(WARNING) << "alloc data bitmap failed at increase 3";
+                return kFail;
+            }
+
+            auto p2 = (uint32_t *)(ind21->data);
+            p2[j % INODE_INDIRECT_COUNT] = new_blk;
+            if (dev->write(p[blk], ind21) != kSuccess) {
+                DLOG(WARNING) << "write indirect1 block " << p[blk] << " failed at increase 3";
+                return kFail;
+            }
+            delete ind21;
         }
-        delete ind21;
+        delete ind2;
     }
-    delete ind2;
     return kSuccess;
 }
 

@@ -1,6 +1,7 @@
 #ifndef BLK_DEV_H_
 #define BLK_DEV_H_
 
+#include "blk_cache.h"
 #include "config.h"
 #include "lru_cache.h"
 
@@ -37,8 +38,8 @@ public:
     int read_from_disk(blk_id_t block_id, Block *buf);
 
 private:
-    LRUCacheManager blk_cache_mgr_;
-    // BlockCacheManager blk_cache_mgr_;
+    // LRUCacheManager blk_cache_mgr_;
+    BlockCacheManager blk_cache_mgr_;
     int fd_;
     uint32_t num_data_blocks_;
     uint32_t num_log_blocks_; /* TODO: reserve log blocks */

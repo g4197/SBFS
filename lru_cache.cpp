@@ -54,19 +54,28 @@ int LRUCacheManager::get(blk_id_t block_id, Block *block) {
     std::ignore = block;
     int slot = -1;
     DLOG(INFO) << "cache receive get req: " << block_id << " " << block;
-    if (get_page(block_id, slot) != kSuccess) {
-        DLOG(ERROR) << "get " << block_id << " failed";
-        block = nullptr;
-        return kFail;
-    } else {
-        DLOG(INFO) << "cache get " << block_id << " slot " << slot;
+    auto it = _hashtable.find(block_id);
+    if (it != _hashtable.end()) {
+        slot = it->second;
+        LRU_remove(slot);
+        LRU_add(slot);
         memcpy(block, _buffer[slot].first, sizeof(Block));
-        // block = _buffer[slot].first;
         return kSuccess;
+    } else {
+        return kFail;
     }
-    block = nullptr;
-    rt_assert(false, "should not reach here");
-    return kFail;
+    // if (get_page(block_id, slot) != kSuccess) {
+    //     DLOG(ERROR) << "get " << block_id << " failed";
+    //     memset(block, 0, sizeof(Block));
+    //     return kFail;
+    // } else {
+    //     DLOG(INFO) << "cache get " << block_id << " slot " << slot;
+    //     memcpy(block, _buffer[slot].first, sizeof(Block));
+    //     // block = _buffer[slot].first;
+    //     return kSuccess;
+    // }
+    // rt_assert(false, "should not reach here");
+    // return kFail;
 }
 
 int LRUCacheManager::remove(blk_id_t block_id) {
@@ -77,18 +86,34 @@ int LRUCacheManager::remove(blk_id_t block_id) {
 int LRUCacheManager::sync(blk_id_t block_id) {
     int slot = -1;
     DLOG(INFO) << "cache receive sync req: " << block_id;
-    if (get_page(block_id, slot) != kSuccess) {
-        DLOG(ERROR) << "sync block not found";
-        return kFail;
-    } else {
+    auto it = _hashtable.find(block_id);
+    if (it != _hashtable.end()) {
+        slot = it->second;
         DLOG(INFO) << "cache sync " << block_id << " slot " << slot;
+        LRU_remove(slot);
+        LRU_add(slot);
         if (_buffer[slot].second.is_dirty()) {
             _buffer[slot].second.rev_dirty();
-            return _dev->write_to_disk(_buffer[slot].second.id, _buffer[slot].first);
+            return _dev->write_to_disk(block_id, _buffer[slot].first);
         } else {
             return kSuccess;
         }
+    } else {
+        DLOG(ERROR) << "sync block not found";
+        return kFail;
     }
+    // if (get_page(block_id, slot) != kSuccess) {
+    //     DLOG(ERROR) << "sync block not found";
+    //     return kFail;
+    // } else {
+    //     DLOG(INFO) << "cache sync " << block_id << " slot " << slot;
+    //     if (_buffer[slot].second.is_dirty()) {
+    //         _buffer[slot].second.rev_dirty();
+    //         return _dev->write_to_disk(_buffer[slot].second.id, _buffer[slot].first);
+    //     } else {
+    //         return kSuccess;
+    //     }
+    // }
     rt_assert(false, "should not reach here");
     return kFail;
 }
@@ -142,7 +167,7 @@ int LRUCacheManager::alloc(int &slot) {
         _buffer[slot].second.init();
         LRU_remove(slot);
         LRU_add(slot);
-        return 0;
+        return kSuccess;
     }
     for (slot = LRU_last; slot != -1; slot = _buffer[slot].second.prev) {
         if (/*buffer[slot].pin*/ true) {
