@@ -27,6 +27,13 @@ LRUCacheManager::LRUCacheManager(const uint64_t cache_size, BlockDevice *parent)
 
 LRUCacheManager::~LRUCacheManager() {
     for (int i = 0; i < _size; i++) {
+        auto &stu = _buffer[i].second;
+        if (stu.is_dirty()) {
+            if (_dev->write_to_disk(stu.id, _buffer[i].first)) {
+                DLOG(ERROR) << "write block dirty failed at destructor";
+                return kFail;
+            }
+        }
         delete _buffer[i].first;
     }
 }
