@@ -9,7 +9,7 @@ include_directories(
 )
 
 add_compile_options(
-    -fsanitize=address,undefined
+    # -fsanitize=address,undefined
 	-std=c++17
 	-O2
 	-g
@@ -30,8 +30,8 @@ add_definitions(
 )
 
 link_libraries(
-    asan
-    ubsan
+    # asan
+    # ubsan
     glog
     gflags
     fuse3
