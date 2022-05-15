@@ -154,9 +154,9 @@ int DiskInode::increase(int old_blocks, int old_data_blocks, int new_blocks, int
         auto p = (uint32_t *)(ind2.data);
         int old_idx_limit = old_data_blocks - INODE_DIRECT_COUNT - INODE_INDIRECT_COUNT - 1;
         int blk_limit = old_idx_limit / INODE_INDIRECT_COUNT;
-        if (old_idx_limit < 0)
-        	blk_limit = -1;
-        DLOG(WARNING) << "increase indirect2 " << " old idx " << old_idx_limit << " blk " << blk_limit << endl;
+        if (old_idx_limit < 0) blk_limit = -1;
+        DLOG(WARNING) << "increase indirect2 "
+                      << " old idx " << old_idx_limit << " blk " << blk_limit << endl;
         for (int i = max(old_data_blocks, INODE_DIRECT_COUNT + INODE_INDIRECT_COUNT); i < new_data_blocks; i++) {
             int j = i - INODE_DIRECT_COUNT - INODE_INDIRECT_COUNT;
             int blk = j / INODE_INDIRECT_COUNT;
@@ -307,7 +307,7 @@ int DiskInode::decrease(int old_blocks, int old_data_blocks, int new_blocks, int
                 DLOG(WARNING) << "free indirect2 failed at decrease 3";
                 return kFail;
             }
-
+            indirect2 = 0;
         } else if (ri >= 0 && rj >= 0) {  // the case where indirect2 should be updated
             Block ind2;
             if (dev->read(indirect2, &ind2) != kSuccess) {
@@ -337,7 +337,7 @@ int DiskInode::decrease(int old_blocks, int old_data_blocks, int new_blocks, int
                         return kFail;
                     }
                 } else if (i == posi.first && i != posj.first) {
-                    for (int j = posi.second + 1; j < _GLIBCXX_DARWIN_USE_64_BIT_INODE; ++j) {
+                    for (int j = posi.second + 1; j < INODE_INDIRECT_COUNT; ++j) {
                         auto ret = data_bitmap->free(p2[j], dev);
                         if (ret != kSuccess) {
                             DLOG(WARNING) << "free data bitmap failed at decrease 3";

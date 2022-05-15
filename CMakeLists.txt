@@ -35,10 +35,10 @@ link_libraries(
     glog
     gflags
     fuse3
-    #rocksdb
+    rocksdb
 )
 
 file(GLOB SBFS_SOURCES src/*.cpp)
 
 add_executable(main ${SBFS_SOURCES})
-# add_executable(test_rocksdb test/test_rocksdb.cpp)
+add_executable(test_rocksdb test/test_rocksdb.cpp)
