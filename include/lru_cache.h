@@ -23,6 +23,8 @@ public:
     int remove(blk_id_t block_id);
     /* write back block. */
     int sync(blk_id_t block_id);
+    /* sync all blocks. */
+    int sync_all();
 
 private:
     /**

@@ -95,4 +95,8 @@ int BlockDevice::sync(blk_id_t block_id) {
     return blk_cache_mgr_.sync(block_id);
 }
 
+int BlockDevice::sync_all() {
+    return blk_cache_mgr_.sync_all();
+}
+
 };  // namespace sbfs

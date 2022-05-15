@@ -25,18 +25,7 @@ LRUCacheManager::LRUCacheManager(const uint64_t cache_size, BlockDevice *parent)
     DLOG(INFO) << "cache created with size " << _size << " blocks";
 };
 
-LRUCacheManager::~LRUCacheManager() {
-    for (int i = 0; i < _size; i++) {
-        auto &stu = _buffer[i].second;
-        if (stu.is_dirty()) {
-            if (_dev->write_to_disk(stu.id, _buffer[i].first)) {
-                DLOG(ERROR) << "write block dirty failed at destructor";
-                return kFail;
-            }
-        }
-        delete _buffer[i].first;
-    }
-}
+LRUCacheManager::~LRUCacheManager() {}
 
 int LRUCacheManager::upsert(blk_id_t block_id, const Block *block, bool is_update) {
     int slot = -1;
@@ -123,6 +112,19 @@ int LRUCacheManager::sync(blk_id_t block_id) {
     // }
     rt_assert(false, "should not reach here");
     return kFail;
+}
+
+int LRUCacheManager::sync_all() {
+    for (int i = 0; i < _size; i++) {
+        auto &stu = _buffer[i].second;
+        if (stu.is_dirty()) {
+            if (_dev->write_to_disk(stu.id, _buffer[i].first)) {
+                DLOG(ERROR) << "write block dirty failed";
+                return kFail;
+            }
+        }
+    }
+    return kSuccess;
 }
 
 int LRUCacheManager::get_page(blk_id_t id, int &slot) {
