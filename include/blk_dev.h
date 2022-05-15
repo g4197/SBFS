@@ -38,8 +38,11 @@ public:
     int read_from_disk(blk_id_t block_id, Block *buf);
 
 private:
-    // LRUCacheManager blk_cache_mgr_;
+#ifdef BLOCK_CACHE
+    LRUCacheManager blk_cache_mgr_;
+#else
     BlockCacheManager blk_cache_mgr_;
+#endif
     int fd_;
     uint32_t num_data_blocks_;
     uint32_t num_log_blocks_; /* TODO: reserve log blocks */

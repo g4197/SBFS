@@ -32,8 +32,8 @@ inline constexpr uint64_t GB(uint64_t x) {
     } while (0)
 #endif
 
-constexpr uint64_t kBlockSize = 4096;         // block is 4kb
-constexpr uint64_t kBlockCacheSize = MB(32);  // block cache
+constexpr uint64_t kBlockSize = 4096;          // block is 4kb
+constexpr uint64_t kBlockCacheSize = MB(768);  // block cache
 
 using blk_id_t = uint32_t;
 

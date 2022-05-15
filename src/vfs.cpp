@@ -71,7 +71,7 @@ int sb_rmw_diskinode(const char *path, struct fuse_file_info *fi, function<int(D
 void sb_destroy(void *private_data) {
     auto guard = lock_guard(mtx);
     delete path_resolver;
-    delete sbfs;
+    free(sbfs);
 }
 
 int sb_mkdir(const char *path, mode_t mode) {

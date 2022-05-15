@@ -49,8 +49,8 @@ private:
     void initBitmapAndBlock();
     /* create root inode. */
     void createRoot();
-    BlockDevice *device_;
     SuperBlock super_block_;
+    BlockDevice *device_;
     Bitmap *inode_bitmap_; /* Bitmap for inodes, attention: inode size may be < kBlockSize. */
     uint32_t inode_area_start_block_;
     uint32_t data_area_start_block_;

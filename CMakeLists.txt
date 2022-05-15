@@ -23,9 +23,10 @@ add_compile_options(
 )
 
 add_definitions(
-    #-DNDEBUG
+    -DNDEBUG
     -DFUSE_USE_VERSION=31
     -DPATH_CACHE
+    -DBLOCK_CACHE
 )
 
 link_libraries(
