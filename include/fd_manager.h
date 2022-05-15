@@ -13,7 +13,7 @@ class FDManager {
 public:
     FDManager() {
         fd_manager.clear();
-        fd_counter.store(1, std::memory_order_relaxed);
+        fd_counter.store(10, std::memory_order_relaxed);  // jump stdin and stdout
     }
 
     uint64_t open(const Inode &inode) {
