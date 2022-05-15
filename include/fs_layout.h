@@ -177,7 +177,12 @@ private:
     int clear(Bitmap *data_bitmap, BlockDevice *dev);
     int increase(int, int, int, int, BlockDevice *, Bitmap *);
     int decrease(int, int, int, int, BlockDevice *, Bitmap *);
-    void update_meta();
+    /**
+     * @brief 1 (access) or 2(modify) or 4(change) in flag
+     *
+     * @param flag
+     */
+    void update_meta(int flag);
 };
 
 static_assert(sizeof(DiskInode) <= kBlockSize, "DiskInode size error");

@@ -387,7 +387,7 @@ int DiskInode::decrease(int old_blocks, int old_data_blocks, int new_blocks, int
 }
 
 int DiskInode::resize(uint32_t new_size, Bitmap *data_bitmap, BlockDevice *dev) {
-    update_meta();
+    update_meta(7);
     // if (new_size == 0) return clear(data_bitmap, dev);
     auto old_size = size;
     size = new_size;
@@ -477,7 +477,7 @@ int DiskInode::clear(Bitmap *data_bitmap, BlockDevice *dev) {
 }
 
 int DiskInode::read_data(uint32_t offset, uint8_t *buf, uint32_t len, BlockDevice *dev) {
-    update_meta();
+    update_meta(1);
 
     if (len == 0) return kSuccess;
     if (offset > size) {
@@ -536,7 +536,7 @@ int DiskInode::read_data(uint32_t offset, uint8_t *buf, uint32_t len, BlockDevic
 }
 
 int DiskInode::write_data(uint32_t offset, const uint8_t *buf, uint32_t len, BlockDevice *dev) {
-    update_meta();
+    update_meta(3);
     if (len == 0) return kSuccess;
     DLOG(WARNING) << "disk inode write data offset " << offset << " len " << len;
     if (offset > size) {
@@ -648,8 +648,8 @@ int DiskInode::sync_data(BlockDevice *dev, bool indirect) {
     return kSuccess;
 }
 
-void DiskInode::update_meta() {
-    access_time = time(nullptr);
-    modify_time = time(nullptr);
-    change_time = time(nullptr);
+void DiskInode::update_meta(int flag) {
+    if (flag & 1) access_time = time(nullptr);
+    if (flag & 2) modify_time = time(nullptr);
+    if (flag & 4) change_time = time(nullptr);
 }
