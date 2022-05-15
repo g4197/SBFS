@@ -67,7 +67,7 @@ int Bitmap::free(blk_id_t block_id, BlockDevice *dev) {
         DLOG(WARNING) << "bitmap read " << start_block_id + block_id_in_bitmap << " failed";
         return kFail;
     }
-    auto sz = sizeof(uint64_t);
+    auto sz = sizeof(uint64_t) * 8;
     auto p = (uint64_t *)(buf.data);
     p[slot_id_in_bitmap / sz] &= ~(1ul << (slot_id_in_bitmap % sz));
     if (dev->write(start_block_id + block_id_in_bitmap, &buf) != kSuccess) {
