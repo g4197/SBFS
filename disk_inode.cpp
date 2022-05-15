@@ -261,12 +261,12 @@ int DiskInode::decrease(int old_blocks, int old_data_blocks, int new_blocks, int
         pair<int, int> posi = make_pair(ri / INODE_INDIRECT_COUNT, ri % INODE_INDIRECT_COUNT),
                        posj = make_pair(rj / INODE_INDIRECT_COUNT, rj % INODE_INDIRECT_COUNT);
         if (ri < 0 && rj >= 0) {  // the case where indirect2 should be freed
-            auto ind2 = new Block;
-            if (dev->read(indirect2, ind2) != kSuccess) {
+            Block ind2;
+            if (dev->read(indirect2, &ind2) != kSuccess) {
                 DLOG(WARNING) << "read indirect2 block " << indirect2 << " failed at decrease 3";
                 return kFail;
             }
-            auto p = (uint32_t *)(ind2->data);
+            auto p = (uint32_t *)(ind2.data);
             for (int i = 0; i <= posj.first; i++) {
                 Block ind1;
                 if (dev->read(p[i], &ind1) != kSuccess) {
