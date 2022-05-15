@@ -9,7 +9,7 @@
 
 namespace sbfs {
 
-class SBFileSystem {
+class alignas(kBlockSize) SBFileSystem {
 public:
     /* Create a new SBFS. */
     static SBFileSystem create(const char *path, const uint64_t size, uint32_t total_blocks,
@@ -42,7 +42,7 @@ public:
     /* Deallocate a data block. */
     int free_data(uint32_t block_id);
 
-    Bitmap *data_bitmap_;  /* Bitmap for data, attention: data block size is kBlockSize. */
+    Bitmap *data_bitmap_; /* Bitmap for data, attention: data block size is kBlockSize. */
 
 private:
     /* called after init super block. */

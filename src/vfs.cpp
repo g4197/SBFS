@@ -29,7 +29,13 @@ void splitFromLastSlash(string &path, string &parent, string &child) {
 
 void init_vfs(const char *path, const uint64_t size, bool is_open) {
     DLOG(WARNING) << "Initializing VFS at " << path << " with size " << size;
-    sbfs = (SBFileSystem *)malloc(sizeof(SBFileSystem));
+    void *t = sbfs;
+    if (posix_memalign(&t, kBlockSize, sizeof(SBFileSystem)) != 0) {
+        DLOG(ERROR) << "posix_memalign failed";
+        abort();
+    }
+    sbfs = reinterpret_cast<SBFileSystem *>(t);
+    // sbfs = (SBFileSystem *)malloc(sizeof(SBFileSystem));
     if (!is_open) {
         *sbfs = SBFileSystem::create(path, size, kFSDataBlocks, kInodeBitmapBlocks);
     } else {
