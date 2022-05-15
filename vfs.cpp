@@ -110,9 +110,9 @@ int sb_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t offset
 
     /* Read all blocks and list each of them. */
     uint32_t tot_blocks = disk_inode.total_blocks(disk_inode.size);
-    DirBlock dir_block;
     DLOG(INFO) << "start listing with total blocks " << tot_blocks;
     for (uint32_t block_id = 0; block_id < tot_blocks; ++block_id) {
+        DirBlock dir_block;  // Don't move it outside because we should reset this block every time.
         auto dir_ret = inode.read_data(block_id * sizeof(DirBlock), (uint8_t *)&dir_block, sizeof(DirBlock));
         rt_assert(dir_ret != kFail, "read dir block failed");
         for (auto &entry : dir_block.entries) {
