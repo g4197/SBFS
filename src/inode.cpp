@@ -141,39 +141,37 @@ int Inode::link(const char *name, const Inode *inode, bool replace) const {
     if (disk_inode.type != kDirectory) {
         return kFail;
     }
-    auto ret = [&]() {
-        // find entry with same name
-        auto tot_blocks = disk_inode.total_blocks(disk_inode.size);
-        DirBlock dir_blk;
-        for (auto i = 0; i < tot_blocks; ++i) {
-            CHECK_RET(disk_inode.read_data(i * sizeof(DirBlock), (uint8_t *)&dir_blk, sizeof(DirBlock), fs->device()));
-            for (auto j = 0; j < kDirEntries; ++j) {
-                if (strcmp(dir_blk.entries[j].name, name) == 0) {
-                    if (!replace) {
-                        return kFail;
-                    }
-                    DirEntry entry(dir_blk.entries[j].name, fs->getDiskInodeId(inode->pos));
-                    CHECK_RET(disk_inode.write_data(i * sizeof(DirBlock) + j * sizeof(DirEntry), (uint8_t *)&entry,
-                                                    sizeof(DirEntry), fs->device()));
-                    return write_inode(&disk_inode);
-                }
-            }
-        }
-        // create new entry
-        CHECK_RET(disk_inode.resize(disk_inode.size + sizeof(DirEntry), fs->data_bitmap_, fs->device()));
-        DirEntry entry(name, inode->fs->getDiskInodeId(inode->pos));
-        CHECK_RET(disk_inode.write_data(disk_inode.size - sizeof(DirEntry), (uint8_t *)&entry, sizeof(DirEntry),
-                                        fs->device()));
-        return write_inode(&disk_inode);
-    }();
-    if (ret == kSuccess) {  // update link_cnt
+    auto update_link_cnt = [&]() {
         DiskInode raw_disk_inode;
         CHECK_RET(inode->read_inode(&raw_disk_inode));
         ++raw_disk_inode.link_cnt;
         return inode->write_inode(&raw_disk_inode);
-    } else {
-        return ret;
+    };
+    // find entry with same name
+    auto tot_blocks = disk_inode.total_blocks(disk_inode.size);
+    DirBlock dir_blk;
+    for (auto i = 0; i < tot_blocks; ++i) {
+        CHECK_RET(disk_inode.read_data(i * sizeof(DirBlock), (uint8_t *)&dir_blk, sizeof(DirBlock), fs->device()));
+        for (auto j = 0; j < kDirEntries; ++j) {
+            if (strcmp(dir_blk.entries[j].name, name) == 0) {
+                if (!replace) {
+                    return kFail;
+                }
+                CHECK_RET(update_link_cnt());
+                DirEntry entry(dir_blk.entries[j].name, fs->getDiskInodeId(inode->pos));
+                CHECK_RET(disk_inode.write_data(i * sizeof(DirBlock) + j * sizeof(DirEntry), (uint8_t *)&entry,
+                                                sizeof(DirEntry), fs->device()));
+                return write_inode(&disk_inode);
+            }
+        }
     }
+    CHECK_RET(update_link_cnt());
+    // create new entry
+    CHECK_RET(disk_inode.resize(disk_inode.size + sizeof(DirEntry), fs->data_bitmap_, fs->device()));
+    DirEntry entry(name, inode->fs->getDiskInodeId(inode->pos));
+    CHECK_RET(disk_inode.write_data(disk_inode.size - sizeof(DirEntry), (uint8_t *)&entry, sizeof(DirEntry),
+                                    fs->device()));
+    return write_inode(&disk_inode);
 }
 
 int Inode::unlink(const char *name, Inode *inode) const {
