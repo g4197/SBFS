@@ -25,10 +25,10 @@ public:
     BlockDevice *device();
 
     /* get actual inode position by inode id. */
-    Position getDiskInodePos(uint32_t inode_id);
+    Position getDiskInodePos(uint32_t inode_id) const;
 
     /* get actual disk inode id by inode position. */
-    uint32_t getDiskInodeId(const Position &pos);
+    uint32_t getDiskInodeId(const Position &pos) const;
 
     /* Allocate an inode, returns inode id. */
     uint32_t alloc_inode();

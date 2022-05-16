@@ -71,14 +71,14 @@ struct Bitmap {
      *
      * @return kFail if failed
      */
-    blk_id_t alloc(BlockDevice *dev);
+    blk_id_t alloc(BlockDevice *dev) const;
     /**
      * @brief free a block
      *
      * @param block_id the ABSOLUTE block id
      * @return kFail if failed, kSuccess if success
      */
-    int free(blk_id_t block_id, BlockDevice *dev);
+    int free(blk_id_t block_id, BlockDevice *dev) const;
 };
 
 enum DiskInodeType : uint32_t { kFile, kDirectory };

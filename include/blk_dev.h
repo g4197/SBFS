@@ -36,8 +36,8 @@ public:
 
     int sync_all();
 
-    int write_to_disk(blk_id_t block_id, const Block *buf);
-    int read_from_disk(blk_id_t block_id, Block *buf);
+    int write_to_disk(blk_id_t block_id, const Block *buf) const;
+    int read_from_disk(blk_id_t block_id, Block *buf) const;
 
 private:
 #ifdef BLOCK_CACHE

@@ -26,7 +26,7 @@ Bitmap::Bitmap(blk_id_t start_block_id, blk_id_t num_blocks, blk_id_t data_segme
     // init();
 }
 
-blk_id_t Bitmap::alloc(BlockDevice *dev) {
+blk_id_t Bitmap::alloc(BlockDevice *dev) const {
     Block buf;
     int slot_per_block = kBlockSize * 8;
     for (blk_id_t i = 0; i < num_blocks; i++) {
@@ -56,7 +56,7 @@ blk_id_t Bitmap::alloc(BlockDevice *dev) {
     return kFail;
 }
 
-int Bitmap::free(blk_id_t block_id, BlockDevice *dev) {
+int Bitmap::free(blk_id_t block_id, BlockDevice *dev) const {
     block_id -= data_segment_offset;
     Block buf;
     int slot_per_block = kBlockSize * 8;

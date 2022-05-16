@@ -105,15 +105,14 @@ BlockDevice *SBFileSystem::device() {
 }
 
 /* get actual inode position by inode id. */
-Position SBFileSystem::getDiskInodePos(uint32_t inode_id) {
-    Position pos;
-    pos.block_id = inode_area_start_block_ + inode_id / kInodesInABlock;
-    pos.block_offset = (inode_id % kInodesInABlock) * sizeof(DiskInode);
+Position SBFileSystem::getDiskInodePos(uint32_t inode_id) const {
+    Position pos{ .block_id = inode_area_start_block_ + inode_id / kInodesInABlock,
+                  .block_offset =static_cast<uint32_t>(((inode_id % kInodesInABlock) * sizeof(DiskInode))) };
     DLOG(INFO) << "inode_id: " << inode_id << " pos: " << pos.block_id << " " << pos.block_offset;
     return pos;
 }
 
-uint32_t SBFileSystem::getDiskInodeId(const Position &pos) {
+uint32_t SBFileSystem::getDiskInodeId(const Position &pos) const {
     return (pos.block_id - inode_area_start_block_) * kInodesInABlock + pos.block_offset / sizeof(DiskInode);
 }
 

@@ -34,11 +34,11 @@ struct Inode {
      */
     int write_data(uint32_t offset, const uint8_t *buf, uint32_t size) const;
     /*
-     * Read diskinode of this inode to buf.
+     * Read disk inode of this inode to buf.
      */
     int read_inode(DiskInode *buf) const;
     /*
-     * Write diskinode of this inode from buf.
+     * Write disk inode of this inode from buf.
      */
     int write_inode(const DiskInode *buf) const;
     /*
@@ -87,13 +87,13 @@ struct Inode {
      * sync data (and inode metadata) to disk.
      * if metadata is True, then should sync metadata.
      * else sync data only.
-     * 1. sync data by calling diskinode's sync_data().
+     * 1. sync data by calling disk inode's sync_data().
      * 2. sync metadata by directly call sync() with block ID.
      */
     [[nodiscard]] int sync(bool metadata = true) const;
 
     /* Judge if the Inode item is valid. */
-    inline bool isValid() {
+    [[nodiscard]] inline bool isValid() const {
         return pos.isValid();
     }
 

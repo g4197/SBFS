@@ -7,8 +7,7 @@
 
 #include "inode.h"
 
-namespace sbfs {
-namespace vfs {
+namespace sbfs::vfs {
 SBFileSystem *sbfs;
 PathResolver *path_resolver;
 FDManager *fd_manager;
@@ -45,7 +44,7 @@ void init_vfs(const char *path, const uint64_t size, bool is_open) {
     fd_manager = new FDManager();
 }
 
-int sb_rmw_diskinode(const char *path, struct fuse_file_info *fi, function<int(DiskInode &)> func) {
+int sb_rmw_diskinode(const char *path, struct fuse_file_info *fi, const function<int(DiskInode &)>& func) {
     DLOG(WARNING) << "read-modify-write diskinode " << path;
     Inode inode;
     if (!fi || !fi->fh || !fd_manager->get(fi->fh, &inode)) {
@@ -418,5 +417,4 @@ int sb_chown(const char *path, uid_t uid, gid_t gid, struct fuse_file_info *fi) 
     });
 }
 
-}  // namespace vfs
 }  // namespace sbfs

@@ -55,7 +55,7 @@ int BlockDevice::write(blk_id_t block_id, const Block *buf) {
     return kSuccess;
 }
 
-int BlockDevice::write_to_disk(blk_id_t block_id, const Block *buf) {
+int BlockDevice::write_to_disk(blk_id_t block_id, const Block *buf) const {
     rt_assert(block_id < num_data_blocks_, "block_id out of range");
     rt_assert(buf != nullptr, "buf is nullptr");
     DLOG(INFO) << "write block to disk " << block_id << " from " << buf;
@@ -66,7 +66,7 @@ int BlockDevice::write_to_disk(blk_id_t block_id, const Block *buf) {
     return kSuccess;
 }
 
-int BlockDevice::read_from_disk(blk_id_t block_id, Block *buf) {
+int BlockDevice::read_from_disk(blk_id_t block_id, Block *buf) const {
     rt_assert(block_id < num_data_blocks_, "block_id out of range");
     DLOG(INFO) << "read block from disk " << block_id << " to " << buf;
     if (pread(fd_, buf, kBlockSize, block_id * kBlockSize) != kBlockSize) {

@@ -29,7 +29,6 @@ int Inode::read_data(uint32_t offset, uint8_t *buf, uint32_t size) const {
     DLOG(WARNING) << "Read data: " << offset << " " << size;
     int len = disk_inode.read_data(offset, buf, size, fs->device());
     CHECK_RET(len);
-    // TODO: update access time
     CHECK_RET(write_inode(&disk_inode));
     return len;
 }
@@ -43,7 +42,6 @@ int Inode::write_data(uint32_t offset, const uint8_t *buf, uint32_t size) const 
     DLOG(WARNING) << "Write data: " << offset << " " << size;
     int len = disk_inode.write_data(offset, buf, size, fs->device());
     CHECK_RET(len);
-    // TODO: update modify time
     CHECK_RET(write_inode(&disk_inode));
     return len;
 }
@@ -70,7 +68,6 @@ int Inode::create(const char *name, DiskInode *disk_inode, Inode *inode) const {
     }
     // write new inode
     CHECK_RET(inode->write_inode(disk_inode));
-    // TODO: update modify time
     return write_inode(&cur_disk_inode);
 }
 
@@ -144,7 +141,6 @@ int Inode::link(const char *name, const Inode *inode, bool replace) const {
     if (disk_inode.type != kDirectory) {
         return kFail;
     }
-    // TODO: modify/create time
     auto ret = [&]() {
         // find entry with same name
         auto tot_blocks = disk_inode.total_blocks(disk_inode.size);
