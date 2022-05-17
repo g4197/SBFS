@@ -369,6 +369,15 @@ int sb_truncate(const char *path, off_t off, struct fuse_file_info *fi) {
 int sb_statfs(const char *path, struct statvfs *stbuf) {
     auto guard = lock_guard(mtx);
     DLOG(WARNING) << "statfs " << path;
+    stbuf->f_bsize = kBlockSize;
+    stbuf->f_frsize = kBlockSize;
+    stbuf->f_blocks = kDiskSize / kBlockSize;
+    stbuf->f_bfree = kDiskSize / kBlockSize;
+    stbuf->f_bavail = kDiskSize / kBlockSize;
+    stbuf->f_files = kInodeBitmapBlocks * kBlockSize * 8;
+    stbuf->f_ffree = kInodeBitmapBlocks * kBlockSize * 8;
+    stbuf->f_favail = kInodeBitmapBlocks * kBlockSize * 8;
+    stbuf->f_namemax = 255;
     /* TODO: unimplemented, need block info */
     return 0;
 }

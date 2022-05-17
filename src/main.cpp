@@ -52,6 +52,7 @@ int main(int argc, char **argv) {
     sb_op.utimens = sb_utimens;
     sb_op.chmod = sb_chmod;
     sb_op.chown = sb_chown;
+    sb_op.statfs = sb_statfs;
 
     DLOG(WARNING) << "start fuse_main";
     fuse_main(args.argc, args.argv, &sb_op, nullptr);
