@@ -163,7 +163,7 @@ int DiskInode::increase(int old_blocks, int old_data_blocks, int new_blocks, int
             // at indirect2, we have to allocate a new indirect1 block that is not previously allocated
             if (blk > blk_limit) {
                 blk_id_t new_ind1 = data_bitmap->alloc(dev);
-                DLOG(WARNING) << "alloc indrect2->1 " << new_ind1;
+                DLOG(WARNING) << "alloc indirect2->1 " << new_ind1;
 
                 if (new_ind1 == kFail) {
                     DLOG(WARNING) << "alloc indirect1 bitmap failed at increase 3";
@@ -202,7 +202,7 @@ int DiskInode::increase(int old_blocks, int old_data_blocks, int new_blocks, int
 }
 
 int DiskInode::decrease(int old_blocks, int old_data_blocks, int new_blocks, int new_data_blocks, BlockDevice *dev,
-                        Bitmap *data_bitmap) {
+                        Bitmap *data_bitmap, Inode *inode, DiskInode *dist_inode) {
     int new_direct_blocks = new_blocks - old_blocks - (new_data_blocks - old_data_blocks);
     rt_assert(new_direct_blocks <= 0, "new direct blocks should be non-positive");
 
@@ -389,7 +389,7 @@ int DiskInode::decrease(int old_blocks, int old_data_blocks, int new_blocks, int
     return kSuccess;
 }
 
-int DiskInode::resize(uint32_t new_size, Bitmap *data_bitmap, BlockDevice *dev) {
+int DiskInode::resize(uint32_t new_size, Bitmap *data_bitmap, BlockDevice *dev, Inode *inode, DiskInode *disk_inode) {
     update_meta(7);
     // if (new_size == 0) return clear(data_bitmap, dev);
     auto old_size = size;
@@ -403,7 +403,7 @@ int DiskInode::resize(uint32_t new_size, Bitmap *data_bitmap, BlockDevice *dev) 
                   << " new_data_blocks: " << new_data_blocks;
     if (old_blocks == new_blocks) return kSuccess;
     if (old_blocks > new_blocks) {
-        return decrease(old_blocks, old_data_blocks, new_blocks, new_data_blocks, dev, data_bitmap);
+        return decrease(old_blocks, old_data_blocks, new_blocks, new_data_blocks, dev, data_bitmap, inode, disk_inode);
     } else {
         return increase(old_blocks, old_data_blocks, new_blocks, new_data_blocks, dev, data_bitmap);
     }
