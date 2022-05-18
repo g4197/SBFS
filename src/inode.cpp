@@ -103,9 +103,7 @@ int Inode::resize(uint32_t new_size) const {
         CHECK_RET(disk_inode.resize(new_size, fs->data_bitmap_, fs->device()));
         return write_inode(&disk_inode);
     } else {  // decrease
-        // return disk_inode.resize(new_size, fs->data_bitmap_, fs->device(), this);
-        CHECK_RET(disk_inode.resize(new_size, fs->data_bitmap_, fs->device()));
-        return write_inode(&disk_inode);
+        return disk_inode.resize(new_size, fs->data_bitmap_, fs->device(), this);
     }
 }
 
@@ -135,11 +133,9 @@ int Inode::remove(const char *name) const {
                     }
                     // decrease
                     CHECK_RET(disk_inode.resize(disk_inode.size - sizeof(DirEntry), fs->data_bitmap_, fs->device(), this));
-                    // CHECK_RET(disk_inode.resize(disk_inode.size - sizeof(DirEntry), fs->data_bitmap_, fs->device()));
-                    // CHECK_RET(write_inode(&disk_inode));
+                    CHECK_RET(fs->free_inode(dir_blk.entries[j].inode));
                     // decrease
-                    del_disk_inode.resize(0, del_inode.fs->data_bitmap_, del_inode.fs->device());
-                    return fs->free_inode(dir_blk.entries[j].inode);
+                    return del_disk_inode.resize(0, del_inode.fs->data_bitmap_, del_inode.fs->device());
                 } else {
                     return write_inode(&disk_inode);
                 }
@@ -175,7 +171,6 @@ int Inode::link(const char *name, const Inode *inode, bool replace) const {
                 DirEntry entry(dir_blk.entries[j].name, fs->getDiskInodeId(inode->pos));
                 CHECK_RET(disk_inode.write_data(i * sizeof(DirBlock) + j * sizeof(DirEntry), (uint8_t *)&entry,
                                                 sizeof(DirEntry), fs->device()));
-                // FIXME: release old inode?
                 return write_inode(&disk_inode);
             }
         }
@@ -212,9 +207,7 @@ int Inode::unlink(const char *name, Inode *inode) const {
                                                         (uint8_t *)&last_entry, sizeof(DirEntry), fs->device()));
                     }
                     // decrease
-                    // return disk_inode.resize(disk_inode.size - sizeof(DirEntry), fs->data_bitmap_, fs->device(), this);
-                    CHECK_RET(disk_inode.resize(disk_inode.size - sizeof(DirEntry), fs->data_bitmap_, fs->device()));
-                    return write_inode(&disk_inode);
+                    return disk_inode.resize(disk_inode.size - sizeof(DirEntry), fs->data_bitmap_, fs->device(), this);
                 }
             }
         }

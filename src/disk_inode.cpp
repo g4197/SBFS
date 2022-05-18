@@ -427,7 +427,12 @@ int DiskInode::resize(uint32_t new_size, Bitmap *data_bitmap, BlockDevice *dev, 
     DLOG(WARNING) << "old_size: " << old_size << " new_size: " << new_size << " old_blocks: " << old_blocks
                   << " new_blocks: " << new_blocks << " old_data_blocks: " << old_data_blocks
                   << " new_data_blocks: " << new_data_blocks;
-    if (old_blocks == new_blocks) return kSuccess;
+    if (old_blocks == new_blocks) {
+        if (inode != nullptr) {
+            inode->write_inode(this);
+        }
+        return kSuccess;
+    }
     if (old_blocks > new_blocks) {
         return decrease(old_blocks, old_data_blocks, new_blocks, new_data_blocks, dev, data_bitmap, inode);
     } else {
