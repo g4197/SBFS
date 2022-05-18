@@ -14,7 +14,7 @@ SBFileSystem SBFileSystem::create(const char *path, const uint64_t size, uint32_
     fs.super_block_.magic = kFSMagic;
     fs.super_block_.total_blocks = total_blocks;
     fs.super_block_.inode_bitmap_blocks = inode_bitmap_blocks;
-    fs.super_block_.inode_area_blocks = inode_bitmap_blocks * 8 * kInodesInABlock;
+    fs.super_block_.inode_area_blocks = inode_bitmap_blocks * 8 * kBlockSize / kInodesInABlock;
     uint32_t remaining_blocks = total_blocks - inode_bitmap_blocks - fs.super_block_.inode_area_blocks;
     /* 1 data bitmap <-> 8 * kBlockSize data block */
     fs.super_block_.data_bitmap_blocks = remaining_blocks / (1 + 8 * kBlockSize);
@@ -22,8 +22,8 @@ SBFileSystem SBFileSystem::create(const char *path, const uint64_t size, uint32_
     fs.super_block_.root_inode_pos = Position::invalid();
 
     fs.super_block_.print();
-    DLOG(INFO) << "unusable_blocks: "
-               << remaining_blocks - fs.super_block_.data_bitmap_blocks - fs.super_block_.data_area_blocks;
+    DLOG(WARNING) << "unusable_blocks: "
+                  << remaining_blocks - fs.super_block_.data_bitmap_blocks - fs.super_block_.data_area_blocks;
     /* stage 1: super block initialize, but root inode pos is invalid. */
     fs.device_->write(0, (Block *)&fs.super_block_);
 
@@ -80,6 +80,7 @@ void SBFileSystem::createRoot() {
     strcpy(root_dir_block.entries[1].name, "..");
     root_dir_block.entries[1].inode = root_inode_id;
     root_inode_data.size = 2 * sizeof(DirEntry);
+    root_inode_data.mode |= 0755;
     root_inode_data.direct[0] = root_data_id;
 
     Inode inode{ getDiskInodePos(root_inode_id), this };
@@ -88,6 +89,8 @@ void SBFileSystem::createRoot() {
 
     /* set root inode pos */
     super_block_.root_inode_pos = getDiskInodePos(root_inode_id);
+    DLOG(WARNING) << "Create root finished";
+    super_block_.print();
     device_->write(0, (Block *)&super_block_);
 }
 
@@ -102,20 +105,22 @@ BlockDevice *SBFileSystem::device() {
 }
 
 /* get actual inode position by inode id. */
-Position SBFileSystem::getDiskInodePos(uint32_t inode_id) {
-    Position pos;
-    pos.block_id = inode_area_start_block_ + inode_id / kInodesInABlock;
-    pos.block_offset = (inode_id % kInodesInABlock) * sizeof(DiskInode);
+Position SBFileSystem::getDiskInodePos(uint32_t inode_id) const {
+    Position pos{ .block_id = inode_area_start_block_ + inode_id / kInodesInABlock,
+                  .block_offset =static_cast<uint32_t>(((inode_id % kInodesInABlock) * sizeof(DiskInode))) };
+    DLOG(INFO) << "inode_id: " << inode_id << " pos: " << pos.block_id << " " << pos.block_offset;
     return pos;
 }
 
-uint32_t SBFileSystem::getDiskInodeId(const Position &pos) {
+uint32_t SBFileSystem::getDiskInodeId(const Position &pos) const {
     return (pos.block_id - inode_area_start_block_) * kInodesInABlock + pos.block_offset / sizeof(DiskInode);
 }
 
 /* Allocate an inode, returns inode id. */
 uint32_t SBFileSystem::alloc_inode() {
-    return inode_bitmap_->alloc(device_);
+    uint32_t inode_id = inode_bitmap_->alloc(device_);
+    DLOG(WARNING) << "alloc_inode: " << inode_id;
+    return inode_id;
 }
 
 /* Allocate a data block, returns block id (not block_id - data_area_start). */

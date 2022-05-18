@@ -8,7 +8,7 @@
 namespace sbfs {
 /* Directory block stored in data area */
 constexpr uint64_t kDirEntries = kBlockSize / sizeof(DirEntry);
-struct DirBlock {
+struct alignas(kBlockSize) DirBlock {
     DirEntry entries[kDirEntries];
 };
 
@@ -18,6 +18,9 @@ struct Inode {
     /* Place of DiskInode */
     Position pos;
     SBFileSystem *fs;
+    static inline Inode invalid() {
+        return Inode{ Position::invalid(), nullptr };
+    }
     /*
      * Read "size" bytes from offset to "buf".
      * Metadata (access time etc.) should be updated.
@@ -31,16 +34,16 @@ struct Inode {
      */
     int write_data(uint32_t offset, const uint8_t *buf, uint32_t size) const;
     /*
-     * Read diskinode of this inode to buf.
+     * Read disk inode of this inode to buf.
      */
     int read_inode(DiskInode *buf) const;
     /*
-     * Write diskinode of this inode from buf.
+     * Write disk inode of this inode from buf.
      */
     int write_inode(const DiskInode *buf) const;
     /*
      * Create a file / directory with "name" in current dir.
-     * its DiskInode info is in disk_inode.
+     * its DiskInode ERROR is in disk_inode.
      * Only support directory type.
      * input: name, disk_inode
      * output: inode, 0 or -1
@@ -84,13 +87,13 @@ struct Inode {
      * sync data (and inode metadata) to disk.
      * if metadata is True, then should sync metadata.
      * else sync data only.
-     * 1. sync data by calling diskinode's sync_data().
+     * 1. sync data by calling disk inode's sync_data().
      * 2. sync metadata by directly call sync() with block ID.
      */
     [[nodiscard]] int sync(bool metadata = true) const;
 
     /* Judge if the Inode item is valid. */
-    inline bool isValid() {
+    [[nodiscard]] inline bool isValid() const {
         return pos.isValid();
     }
 

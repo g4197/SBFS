@@ -16,8 +16,8 @@ void sb_destroy(void *private_data);
 
 int sb_mkdir(const char *path, mode_t mode);
 
-int sb_readdir(
-    const char *path, void *buf, fuse_fill_dir_t filler, off_t offset, fuse_file_info *fi, fuse_readdir_flags flags);
+int sb_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t offset, fuse_file_info *fi,
+               fuse_readdir_flags flags);
 
 int sb_getattr(const char *path, struct stat *stbuf, fuse_file_info *fi);
 
@@ -42,6 +42,12 @@ int sb_truncate(const char *path, off_t off, struct fuse_file_info *fi);
 int sb_statfs(const char *path, struct statvfs *stbuf);
 
 int sb_fsync(const char *path, int datasync, struct fuse_file_info *fi);
+
+int sb_utimens(const char *, const struct timespec tv[2], struct fuse_file_info *fi);
+
+int sb_chmod(const char *path, mode_t mode, struct fuse_file_info *fi);
+
+int sb_chown(const char *path, uid_t uid, gid_t gid, struct fuse_file_info *fi);
 
 /* TODO: more interfaces */
 };      // namespace vfs

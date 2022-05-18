@@ -9,7 +9,7 @@
 
 namespace sbfs {
 
-class SBFileSystem {
+class alignas(kBlockSize) SBFileSystem {
 public:
     /* Create a new SBFS. */
     static SBFileSystem create(const char *path, const uint64_t size, uint32_t total_blocks,
@@ -25,10 +25,10 @@ public:
     BlockDevice *device();
 
     /* get actual inode position by inode id. */
-    Position getDiskInodePos(uint32_t inode_id);
+    Position getDiskInodePos(uint32_t inode_id) const;
 
     /* get actual disk inode id by inode position. */
-    uint32_t getDiskInodeId(const Position &pos);
+    uint32_t getDiskInodeId(const Position &pos) const;
 
     /* Allocate an inode, returns inode id. */
     uint32_t alloc_inode();
@@ -42,15 +42,15 @@ public:
     /* Deallocate a data block. */
     int free_data(uint32_t block_id);
 
-    Bitmap *data_bitmap_;  /* Bitmap for data, attention: data block size is kBlockSize. */
+    Bitmap *data_bitmap_; /* Bitmap for data, attention: data block size is kBlockSize. */
 
 private:
     /* called after init super block. */
     void initBitmapAndBlock();
     /* create root inode. */
     void createRoot();
-    BlockDevice *device_;
     SuperBlock super_block_;
+    BlockDevice *device_;
     Bitmap *inode_bitmap_; /* Bitmap for inodes, attention: inode size may be < kBlockSize. */
     uint32_t inode_area_start_block_;
     uint32_t data_area_start_block_;

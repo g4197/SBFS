@@ -13,7 +13,7 @@ class FDManager {
 public:
     FDManager() {
         fd_manager.clear();
-        fd_counter.store(1, std::memory_order_relaxed);
+        fd_counter.store(10, std::memory_order_relaxed);  // jump stdin and stdout
     }
 
     uint64_t open(const Inode &inode) {
@@ -24,6 +24,7 @@ public:
     }
 
     bool get(uint64_t fd, Inode *inode) {
+        if (fd == 0) return false;
         auto it = fd_manager.find(fd);
         if (it == fd_manager.end()) {
             return false;
@@ -33,6 +34,7 @@ public:
     }
 
     void close(uint64_t fd) {
+        if (fd == 0) return;
         if (fd_manager.find(fd) != fd_manager.end()) {
             Inode inode = fd_manager[fd];
             deltaRefCnt(inode, -1);
@@ -46,7 +48,7 @@ public:
 
     void deltaRefCnt(const Inode &inode, int delta) {
         if (reference_count.find(inode) == reference_count.end()) {
-            reference_count[inode] = delta;
+            reference_count.insert(std::make_pair(inode, (uint64_t)delta));
         } else {
             reference_count[inode] += delta;
         }
