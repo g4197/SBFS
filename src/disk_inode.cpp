@@ -205,18 +205,21 @@ int DiskInode::decrease(int old_blocks, int old_data_blocks, int new_blocks, int
                         Bitmap *data_bitmap, Inode *inode) {
     int new_direct_blocks = new_blocks - old_blocks - (new_data_blocks - old_data_blocks);
     rt_assert(new_direct_blocks <= 0, "new direct blocks should be non-positive");
-
     // we will do this in three steps
+
+    vector<int> bitmap_to_free;  // for consistency issue,
+                                 // we must free bitmap only after the data of inode has been write_back
 
     // step one, decrease direct blocks
     for (int i = new_data_blocks; i < min(old_data_blocks, INODE_DIRECT_COUNT); i++) {
-        auto ret = data_bitmap->free(direct[i], dev);
+        bitmap_to_free.push_back(direct[i]);
+        // auto ret = data_bitmap->free(direct[i], dev);
         direct[i] = -1;  // set to -1 is unnecessary, but for better debugging
                          // since this will make sbfs crash faster
-        if (ret != kSuccess) {
-            DLOG(WARNING) << "free data bitmap failed at decrease 1";
-            return kFail;
-        }
+        // if (ret != kSuccess) {
+        //     DLOG(WARNING) << "free data bitmap failed at decrease 1";
+        //     return kFail;
+        // }
     }
 
     // step two, decrease indirect1 blocks
@@ -229,19 +232,21 @@ int DiskInode::decrease(int old_blocks, int old_data_blocks, int new_blocks, int
         auto p = (uint32_t *)(ind1.data);
         for (int i = max(new_data_blocks, INODE_DIRECT_COUNT);
              i < min(old_data_blocks, INODE_DIRECT_COUNT + INODE_INDIRECT_COUNT); i++) {
-            auto ret = data_bitmap->free(p[i - INODE_DIRECT_COUNT], dev);
-            if (ret != kSuccess) {
-                DLOG(WARNING) << "free data bitmap failed at decrease 2";
-                return kFail;
-            }
+            bitmap_to_free.push_back(p[i - INODE_DIRECT_COUNT]);
+            // auto ret = data_bitmap->free(p[i - INODE_DIRECT_COUNT], dev);
+            // if (ret != kSuccess) {
+            //     DLOG(WARNING) << "free data bitmap failed at decrease 2";
+            //     return kFail;
+            // }
             p[i - INODE_DIRECT_COUNT] = -1;
         }
         if (new_data_blocks <= INODE_DIRECT_COUNT) {
-            auto ret = data_bitmap->free(indirect1, dev);
-            if (ret != kSuccess) {
-                DLOG(WARNING) << "free indirect1 bitmap failed at decrease 2";
-                return kFail;
-            }
+            bitmap_to_free.push_back(indirect1);
+            // auto ret = data_bitmap->free(indirect1, dev);
+            // if (ret != kSuccess) {
+            //     DLOG(WARNING) << "free indirect1 bitmap failed at decrease 2";
+            //     return kFail;
+            // }
             indirect1 = 0;
         } else {
             if (dev->write(indirect1, &ind1) != kSuccess) {
@@ -279,34 +284,38 @@ int DiskInode::decrease(int old_blocks, int old_data_blocks, int new_blocks, int
                 auto p2 = (uint32_t *)(ind1.data);
                 if (i != posj.first) {
                     for (int j = 0; j < INODE_INDIRECT_COUNT; ++j) {
-                        auto ret = data_bitmap->free(p2[j], dev);
-                        if (ret != kSuccess) {
-                            DLOG(WARNING) << "free data bitmap failed at decrease 3";
-                            return kFail;
-                        }
+                        bitmap_to_free.push_back(p2[j]);
+                        // auto ret = data_bitmap->free(p2[j], dev);
+                        // if (ret != kSuccess) {
+                        //     DLOG(WARNING) << "free data bitmap failed at decrease 3";
+                        //     return kFail;
+                        // }
                         p2[j] = -1;
                     }
                 } else {
                     for (int j = 0; j <= posj.second; ++j) {
-                        auto ret = data_bitmap->free(p2[j], dev);
-                        if (ret != kSuccess) {
-                            DLOG(WARNING) << "free data bitmap failed at decrease 3";
-                            return kFail;
-                        }
+                        bitmap_to_free.push_back(p2[j]);
+                        // auto ret = data_bitmap->free(p2[j], dev);
+                        // if (ret != kSuccess) {
+                        //     DLOG(WARNING) << "free data bitmap failed at decrease 3";
+                        //     return kFail;
+                        // }
                         p2[j] = -1;
                     }
                 }
-                auto ret = data_bitmap->free(p[i], dev);
-                if (ret != kSuccess) {
-                    DLOG(WARNING) << "free direct1 failed at decrease 3";
-                    return kFail;
-                }
+                bitmap_to_free.push_back(p[i]);
+                // auto ret = data_bitmap->free(p[i], dev);
+                // if (ret != kSuccess) {
+                //     DLOG(WARNING) << "free direct1 failed at decrease 3";
+                //     return kFail;
+                // }
             }
-            auto ret = data_bitmap->free(indirect2, dev);
-            if (ret != kSuccess) {
-                DLOG(WARNING) << "free indirect2 failed at decrease 3";
-                return kFail;
-            }
+            bitmap_to_free.push_back(indirect2);
+            // auto ret = data_bitmap->free(indirect2, dev);
+            // if (ret != kSuccess) {
+            //     DLOG(WARNING) << "free indirect2 failed at decrease 3";
+            //     return kFail;
+            // }
             indirect2 = 0;
         } else if (ri >= 0 && rj >= 0) {  // the case where indirect2 should be updated
             Block ind2;
@@ -324,25 +333,28 @@ int DiskInode::decrease(int old_blocks, int old_data_blocks, int new_blocks, int
                 auto p2 = (uint32_t *)(ind1.data);
                 if (i != posi.first && i != posj.first) {
                     for (int j = 0; j < INODE_INDIRECT_COUNT; ++j) {
-                        auto ret = data_bitmap->free(p2[j], dev);
-                        if (ret != kSuccess) {
-                            DLOG(WARNING) << "free data bitmap failed at decrease 3";
-                            return kFail;
-                        }
+                        bitmap_to_free.push_back(p2[j]);
+                        // auto ret = data_bitmap->free(p2[j], dev);
+                        // if (ret != kSuccess) {
+                        //     DLOG(WARNING) << "free data bitmap failed at decrease 3";
+                        //     return kFail;
+                        // }
                         p2[j] = -1;
                     }
-                    auto ret = data_bitmap->free(p[i], dev);
-                    if (ret != kSuccess) {
-                        DLOG(WARNING) << "free direct1 failed at decrease 3";
-                        return kFail;
-                    }
+                    bitmap_to_free.push_back(p[i]);
+                    // auto ret = data_bitmap->free(p[i], dev);
+                    // if (ret != kSuccess) {
+                    //     DLOG(WARNING) << "free direct1 failed at decrease 3";
+                    //     return kFail;
+                    // }
                 } else if (i == posi.first && i != posj.first) {
                     for (int j = posi.second + 1; j < INODE_INDIRECT_COUNT; ++j) {
-                        auto ret = data_bitmap->free(p2[j], dev);
-                        if (ret != kSuccess) {
-                            DLOG(WARNING) << "free data bitmap failed at decrease 3";
-                            return kFail;
-                        }
+                        bitmap_to_free.push_back(p2[j]);
+                        // auto ret = data_bitmap->free(p2[j], dev);
+                        // if (ret != kSuccess) {
+                        //     DLOG(WARNING) << "free data bitmap failed at decrease 3";
+                        //     return kFail;
+                        // }
                         p2[j] = -1;
                     }
                     if (dev->write(i, &ind1) != kSuccess) {
@@ -351,25 +363,28 @@ int DiskInode::decrease(int old_blocks, int old_data_blocks, int new_blocks, int
                     }
                 } else if (i == posj.first && i != posi.first) {
                     for (int j = 0; j <= posj.second; ++j) {
-                        auto ret = data_bitmap->free(p2[j], dev);
-                        if (ret != kSuccess) {
-                            DLOG(WARNING) << "free data bitmap failed at decrease 3";
-                            return kFail;
-                        }
+                        bitmap_to_free.push_back(p2[j]);
+                        // auto ret = data_bitmap->free(p2[j], dev);
+                        // if (ret != kSuccess) {
+                        //     DLOG(WARNING) << "free data bitmap failed at decrease 3";
+                        //     return kFail;
+                        // }
                         p2[j] = -1;
                     }
-                    auto ret = data_bitmap->free(p[i], dev);
-                    if (ret != kSuccess) {
-                        DLOG(WARNING) << "free direct1 failed at decrease 3";
-                        return kFail;
-                    }
+                    bitmap_to_free.push_back(p[i]);
+                    // auto ret = data_bitmap->free(p[i], dev);
+                    // if (ret != kSuccess) {
+                    //     DLOG(WARNING) << "free direct1 failed at decrease 3";
+                    //     return kFail;
+                    // }
                 } else if (i == posi.first && i == posj.first) {
                     for (int j = posi.second + 1; j <= posj.second; ++j) {
-                        auto ret = data_bitmap->free(p2[j], dev);
-                        if (ret != kSuccess) {
-                            DLOG(WARNING) << "free data bitmap failed at decrease 3";
-                            return kFail;
-                        }
+                        bitmap_to_free.push_back(p2[j]);
+                        // auto ret = data_bitmap->free(p2[j], dev);
+                        // if (ret != kSuccess) {
+                        //     DLOG(WARNING) << "free data bitmap failed at decrease 3";
+                        //     return kFail;
+                        // }
                         p2[j] = -1;
                     }
                     if (dev->write(i, &ind1) != kSuccess) {
@@ -384,6 +399,14 @@ int DiskInode::decrease(int old_blocks, int old_data_blocks, int new_blocks, int
             }
         } else {
             rt_assert(false, "should not be here");
+        }
+    }
+    inode->write_inode(this);
+    for (auto i : bitmap_to_free) {
+        auto ret = data_bitmap->free(i, dev);
+        if (ret != kSuccess) {
+            DLOG(WARNING) << "free data bitmap failed at decrease";
+            return kFail;
         }
     }
     return kSuccess;
