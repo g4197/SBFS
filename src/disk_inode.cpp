@@ -202,7 +202,7 @@ int DiskInode::increase(int old_blocks, int old_data_blocks, int new_blocks, int
 }
 
 int DiskInode::decrease(int old_blocks, int old_data_blocks, int new_blocks, int new_data_blocks, BlockDevice *dev,
-                        Bitmap *data_bitmap, Inode *inode, DiskInode *dist_inode) {
+                        Bitmap *data_bitmap, Inode *inode) {
     int new_direct_blocks = new_blocks - old_blocks - (new_data_blocks - old_data_blocks);
     rt_assert(new_direct_blocks <= 0, "new direct blocks should be non-positive");
 
@@ -389,7 +389,7 @@ int DiskInode::decrease(int old_blocks, int old_data_blocks, int new_blocks, int
     return kSuccess;
 }
 
-int DiskInode::resize(uint32_t new_size, Bitmap *data_bitmap, BlockDevice *dev, Inode *inode, DiskInode *disk_inode) {
+int DiskInode::resize(uint32_t new_size, Bitmap *data_bitmap, BlockDevice *dev, Inode *inode) {
     update_meta(7);
     // if (new_size == 0) return clear(data_bitmap, dev);
     auto old_size = size;
@@ -403,7 +403,7 @@ int DiskInode::resize(uint32_t new_size, Bitmap *data_bitmap, BlockDevice *dev, 
                   << " new_data_blocks: " << new_data_blocks;
     if (old_blocks == new_blocks) return kSuccess;
     if (old_blocks > new_blocks) {
-        return decrease(old_blocks, old_data_blocks, new_blocks, new_data_blocks, dev, data_bitmap, inode, disk_inode);
+        return decrease(old_blocks, old_data_blocks, new_blocks, new_data_blocks, dev, data_bitmap, inode);
     } else {
         return increase(old_blocks, old_data_blocks, new_blocks, new_data_blocks, dev, data_bitmap);
     }
