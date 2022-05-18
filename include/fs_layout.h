@@ -2,9 +2,10 @@
 #define FS_LAYOUT_H_
 
 #include "blk_dev.h"
-#include "inode.h"
 
 namespace sbfs {
+
+struct Inode;
 
 struct Position {
     blk_id_t block_id;
@@ -136,7 +137,7 @@ struct DiskInode {
      * @attention metadata will be updated
      * @attention if inode is set, resize will first write inode, than write bitmap
      */
-    int resize(uint32_t new_size, Bitmap *data_bitmap, BlockDevice *dev, Inode *inode = nullptr);
+    int resize(uint32_t new_size, Bitmap *data_bitmap, BlockDevice *dev, const Inode *inode = nullptr);
 
     /**
      * @brief read 'len' byte from data start from 'offset' to 'buf', metadata will be updated
@@ -178,7 +179,7 @@ struct DiskInode {
 private:
     int clear(Bitmap *data_bitmap, BlockDevice *dev);
     int increase(int, int, int, int, BlockDevice *, Bitmap *);
-    int decrease(int, int, int, int, BlockDevice *, Bitmap *, Inode * = nullptr);
+    int decrease(int, int, int, int, BlockDevice *, Bitmap *, const Inode * = nullptr);
     /**
      * @brief 1 (access) or 2(modify) or 4(change) in flag
      *

@@ -1,6 +1,7 @@
 #include <sys/stat.h>
 
 #include "fs_layout.h"
+#include "inode.h"
 using namespace std;
 using namespace sbfs;
 
@@ -202,7 +203,7 @@ int DiskInode::increase(int old_blocks, int old_data_blocks, int new_blocks, int
 }
 
 int DiskInode::decrease(int old_blocks, int old_data_blocks, int new_blocks, int new_data_blocks, BlockDevice *dev,
-                        Bitmap *data_bitmap, Inode *inode) {
+                        Bitmap *data_bitmap, const Inode *inode) {
     int new_direct_blocks = new_blocks - old_blocks - (new_data_blocks - old_data_blocks);
     rt_assert(new_direct_blocks <= 0, "new direct blocks should be non-positive");
     // we will do this in three steps
@@ -401,7 +402,9 @@ int DiskInode::decrease(int old_blocks, int old_data_blocks, int new_blocks, int
             rt_assert(false, "should not be here");
         }
     }
-    inode->write_inode(this);
+    if (inode != nullptr) {
+        inode->write_inode(this);
+    }
     for (auto i : bitmap_to_free) {
         auto ret = data_bitmap->free(i, dev);
         if (ret != kSuccess) {
@@ -412,7 +415,7 @@ int DiskInode::decrease(int old_blocks, int old_data_blocks, int new_blocks, int
     return kSuccess;
 }
 
-int DiskInode::resize(uint32_t new_size, Bitmap *data_bitmap, BlockDevice *dev, Inode *inode) {
+int DiskInode::resize(uint32_t new_size, Bitmap *data_bitmap, BlockDevice *dev, const Inode *inode) {
     update_meta(7);
     // if (new_size == 0) return clear(data_bitmap, dev);
     auto old_size = size;
