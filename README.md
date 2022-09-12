@@ -1,11 +1,11 @@
 # SBFS
 Storage Basis FS
 
-## 依赖库
+## Dependencies
 * `libfuse3-dev`, `librocksdb-dev`, `libgoogle-glog-dev`, `libgoogle-gflags-dev`
 
 ## Quick Start
 
-* `./run.sh`会自动使用`/tmp/disk`文件创建一个文件系统，并挂载到根目录`build/disk`目录。
-* `./reopen.sh`会打开`/tmp/disk`文件对应的`Storage Basis FS`文件系统。
-* `./rocksdb.sh`, `./fio.sh`分别用以测试`rocksdb`的运行正确性和磁盘读写速度。
+* `run.sh` will create a file system using `/tmp/disk`, and mount it to `build/disk`.
+* `reopen.sh` will open the `Storage Basis FS` corresponding to `/tmp/disk`.
+* `rocksdb.sh` and `fio.sh` are used to test the correctness and I/O performance for `rocksdb`, respectively.
